@@ -1,0 +1,24 @@
+{
+  "name": "openrgb",
+  "version": "0.1.2",
+  "description": "A NodeJS implementation of a OpenRGB SDK client.",
+  "main": "dist/index.js",
+  "author": "vlakreeh <zebpiasecki@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vlakreeh/openrgb"
+  },
+  "license": "MIT",
+  "types": "dist/index.d.ts",
+  "prepublish": "tsc",
+  "dependencies": {
+    "promise-socket": "^6.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^14.0.5",
+    "@typescript-eslint/eslint-plugin": "^3.0.0",
+    "@typescript-eslint/parser": "^3.0.0",
+    "eslint": "^7.1.0",
+    "typescript": "^3.8.0"
+  }
+}
