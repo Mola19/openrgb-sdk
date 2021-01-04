@@ -1,2 +1,5 @@
 /node_modules
 .npmignore
+index.js
+test.js
+.vsls.json
