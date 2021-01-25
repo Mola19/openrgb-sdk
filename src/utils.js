@@ -16,7 +16,7 @@ module.exports = {
 	 * converts a hex string to an RGB-Object
 	 * @param {string} hex the hex-string, does not have to start with a hashtag
 	 */
-	HEXColor: function (hex) {
+	hexColor: function (hex) {
 		if (hex.startsWith("#")) hex = hex.slice(1)
 
 		return {

@@ -17,7 +17,7 @@ async function basic() {
 	console.log(device)
 
 	// disconnect the client
-	client.disconnect()
+	await client.disconnect()
 }
 
 basic()

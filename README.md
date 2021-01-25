@@ -21,6 +21,7 @@ $ node -v
 and, if required, [install the latest version](https://nodejs.org/en/download/)
 
 # Table of Content
+
 - [About](#about)
 - [Installation](#installation)
 - [Table of Content](#table-of-content)
@@ -69,7 +70,7 @@ start()
 const { Client } = require("openrgb-sdk")
 
 async function start () {
-	const client = new Client("localhost", 6742, "Example")
+	const client = new Client("Example", 6742, "localhost")
 	
 	await client.connect()
 
