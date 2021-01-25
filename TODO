@@ -1,4 +1,9 @@
-- check for right Input in most functions
-- beautify and make more consistent and readable
-- move functions to classes e.g. updatemode in device
-- add deviceListUpdated, updateSingleLed
+[ general ]
+	- check for correct input in most functions
+	- beautify and make more consistent and readable
+[ functionality ]
+	- matrix
+	- add deviceListUpdated
+[ misc ]
+	? move functions to classes e.g. updatemode in device
+	- decide bufferpack/native

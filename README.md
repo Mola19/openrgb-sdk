@@ -31,10 +31,11 @@ and, if required, [install the latest version](https://nodejs.org/en/download/)
 		- [Node.js](#nodejs)
 	- [Getting Started](#getting-started)
 	- [Functions](#functions)
-		- [Get Device Data](#get-device-data)
-		- [Changing the Leds of your device](#changing-the-leds-of-your-device)
+		- [Get device data](#get-device-data)
+		- [Changing the LEDs of your device](#changing-the-leds-of-your-device)
 			- [Setting it to a native mode](#setting-it-to-a-native-mode)
 			- [Modify the LEDs yourself](#modify-the-leds-yourself)
+		- [Make RGB objects](#make-rgb-objects)
 - [Documentation](#documentation)
 - [Examples](#examples)
 
@@ -89,7 +90,7 @@ start()
 
 ## Functions
 
-### Get Device Data
+### Get device data
 
 You have two functions to get device data:
 
@@ -114,9 +115,9 @@ This function needs the ID of the device, the ID is just an ascending number, st
 	}
 ```
 
-### Changing the Leds of your device
+### Changing the LEDs of your device
 
-**[First of all ensure, that all RGB programms on your PC are either uninstalled or closed. This includes background-programs.](https://gitlab.com/CalcProgrammer1/OpenRGB/-/wikis/OpenRGB-Windows-Setup-and-Usage#disable-other-rgb-applications)**
+**[First of all ensure, that all other RGB programms on your PC are either uninstalled or closed. This includes background-programs.](https://gitlab.com/CalcProgrammer1/OpenRGB/-/wikis/OpenRGB-Windows-Setup-and-Usage#disable-other-rgb-applications)**
 
 There are two ways to change the leds of your devices:
 
@@ -152,9 +153,55 @@ You can also set the LEDs only for one Zone or for a single LED with simliar fun
 
 An example for a custom mode realized with updateLeds is found in `rainbow.js` in the `examples` folder.
 
+### Make RGB objects
+
+There are few ways to make rgb objects:
+
+This is the regular way to of doing this, every value has to be set manually. Al lfollowing ways ouput this kind object
+
+```js
+let violet = {
+	red: 138,
+	green: 43,
+	blue: 226
+}
+```
+
+but seing, that that is quite long there are a few ways that lets you compact it or use a different color representation.
+
+simply compact it,
+
+```js
+const { utils } = require("openrgb-sdk")
+let violet = utils.color(138, 43, 226)
+```
+
+use a hex-string like css uses,
+
+```js
+const { utils } = require("openrgb-sdk")
+let violet = utils.hexColor("#8a2be2")
+```
+
+use the hsl-representation
+
+```js
+const { utils } = require("openrgb-sdk")
+let violet = utils.HSLColor(271.1, 0.759, 0.527)
+```
+
+or use the hsv-representation.
+
+```js
+const { utils } = require("openrgb-sdk")
+let violet = utils.HSVColor(271.1, 0.81, 0.886)
+```
+
+if any of the values is invalid or negative, it will defaultet to 0, every value that is too high will be defaultet to the highest possible value
+
 # Documentation
 
-**TODO**
+A full documentation is available under [docs.m4rch.xyz](https://docs.m4rch.xyz/openrgb/).
 
 # Examples
 

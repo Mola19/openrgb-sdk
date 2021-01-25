@@ -1,21 +1,23 @@
-const openrgb = require("../src/index.js"); // for your usecase use require("openrgb-sdk")
+const { Client } = require("../src/index.js"); // for your usecase use require("openrgb-sdk")
 
-async function start() {
-	const client = new openrgb.OpenRGBClient({
-		host: "localhost",
-		port: 6742,
-		name: "Example"
-	});
+async function basic() {
+	// initiate a client and connect to it
+	const client = new Client("Example", 6742, "localhost")
+	await client.connect()
 
-	await client.connect();
+	// get the amount of connected devices
+	let deviceCount = await client.getControllerCount()
+	console.log(deviceCount)
 
-	const controllerCount = await client.getControllerCount();
+	// set the first device to its third mode
+	await client.updateMode(0, 3)
 
-	await client.updateMode(0, 3);
+	// get the data of the first device and console log it
+	let device = await client.getControllerData(0)
+	console.log(device)
 
-	const device = await client.getControllerData(2);
-
-	client.disconnect();
+	// disconnect the client
+	client.disconnect()
 }
 
-start();
+basic()

@@ -1,12 +1,14 @@
-class OpenRGBDevice {
-	constructor (buffer) {
+module.exports = class Device {
+	constructor (buffer, deviceId) {
+		this.deviceId = deviceId
+		
 		let offset = 4
 		this.type = buffer.readUInt32LE(offset)
 		offset += 4;
 		
-		["name", "desc", "version", "serial", "location"].forEach(el => {
+		["name", "description", "version", "serial", "location"].forEach(value => {
 			let { text, length } = readString(buffer, offset)
-			this[el] = text
+			this[value] = text
 			offset += length
 		})
 
@@ -50,18 +52,18 @@ class OpenRGBDevice {
 }
 
 function readModes (buffer, modeCount, offset) {
-	const modes = [];
+	const modes = []
 	for (let modeIndex = 0; modeIndex < modeCount; modeIndex++) {
-		const values = ["value", "flags", "speedMin", "speedMax", "colorMin", "colorMax", "speed", "direction", "colorMode"]
 		let mode = {}
 
 		mode.id = modeIndex
 
 		let { text: modeName, length: modeNameLength } = readString(buffer, offset)
 		mode.name = modeName
-		offset += modeNameLength
-		values.forEach(element => {
-			mode[element] = buffer.readInt32LE(offset)
+		offset += modeNameLength;
+
+		["value", "flags", "speedMin", "speedMax", "colorMin", "colorMax", "speed", "direction", "colorMode"].forEach(value => {
+			mode[value] = buffer.readInt32LE(offset)
 			offset += 4
 		})
 		mode.colorLength = buffer.readUInt16LE(offset)
@@ -80,7 +82,6 @@ function readModes (buffer, modeCount, offset) {
 		if (+flagcheck[1] || +flagcheck[2] || +flagcheck[3]) {
 			mode.flagList.push("direction")
 		}
-
 
 		if (!+flagcheck[0]) {
 			mode.speedMin = 0
@@ -119,6 +120,8 @@ function readZones (buffer, zoneCount, offset) {
 			offset += 4
 		})
 
+		zone.resizable = !(zone.ledsMin == zone.ledsMax)
+
 		const matrixSize = buffer.readUInt16LE(offset)
 		offset += 2 + matrixSize // TODO: Parse matrix
 
@@ -139,5 +142,3 @@ function readColor (buffer, offset) {
 	const blue = buffer.readUInt8(offset++)
 	return { red, green, blue }
 }
-
-module.exports = OpenRGBDevice
