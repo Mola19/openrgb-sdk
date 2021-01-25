@@ -66,14 +66,10 @@ start()
 ## Getting Started
 
 ```js
-const openrgb = require("openrgb")
+const { Client } = require("openrgb")
 
 async function start () {
-	const client = new openrgb.OpenRGBClient({
-		host: "localhost",
-		port: 6742,
-		name: "Example"
-	})
+	const client = new Client("localhost", 6742, "Example")
 	
 	await client.connect()
 
@@ -81,7 +77,7 @@ async function start () {
 		- your code -
 	*/
 
-	await client.disconnect
+	await client.disconnect()
 }
 
 start()
