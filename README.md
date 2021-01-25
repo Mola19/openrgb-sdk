@@ -66,7 +66,7 @@ start()
 ## Getting Started
 
 ```js
-const { Client } = require("openrgb")
+const { Client } = require("openrgb-sdk")
 
 async function start () {
 	const client = new Client("localhost", 6742, "Example")
