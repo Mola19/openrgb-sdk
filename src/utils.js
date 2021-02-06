@@ -17,12 +17,12 @@ module.exports = {
 	 * @param {string} hex the hex-string, does not have to start with a hashtag
 	 */
 	hexColor: function (hex) {
-		if (hex.startsWith("#")) hex = hex.slice(1)
+		if (/^#/g.test(hex)) hex = hex.slice(1)
 
 		return {
-			red: parseInt(hex.slice(0, 2), 16) || 0,
-			green: parseInt(hex.slice(2, 4), 16) || 0,
-			blue: parseInt(hex.slice(4, 6), 16) || 0,
+			red: parseInt(hex?.slice(0, 2), 16) || 0,
+			green: parseInt(hex?.slice(2, 4), 16) || 0,
+			blue: parseInt(hex?.slice(4, 6), 16) || 0,
 		}
 	},
 	/**
@@ -54,7 +54,6 @@ module.exports = {
 			r = h2rgb(p, q, h + 1/3)
 			g = h2rgb(p, q, h)
 			b = h2rgb(p, q, h - 1/3)
-
 		} else r = g = b = l
 
 		return { red: Math.floor(r * 255), green: Math.floor(g * 255), blue: Math.floor(b * 255) }
@@ -91,6 +90,22 @@ module.exports = {
 		} else r = g = b = v;
 
 		return { red: Math.floor(r * 255), green: Math.floor(g * 255), blue: Math.floor(b * 255) }
+	},
+	/**
+	 * outputs a random color
+	 */
+	randomColor: function () {
+		return {
+			red: Math.floor(Math.random() * 255),
+			green: Math.floor(Math.random() * 255),
+			blue: Math.floor(Math.random() * 256)
+		}
+	},
+	/**
+	 * outputs a random color, that is more colourful than .randomColor()
+	 */
+	randomHColor: function () {
+		return this.HSLColor(Math.floor(Math.random() * 359), Math.random() * 0.3 + 0.7, Math.random() * 0.5 + 0.25)
 	},
 	command: {
 		requestControllerCount: 0,

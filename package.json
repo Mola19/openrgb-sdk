@@ -14,5 +14,10 @@
 	"dependencies": {
 		"bufferpack": "0.0.6",
 		"promise-socket": "^6.0.3"
+	},
+	"homepage": "https://docs.m4rch.xyz/openrgb",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/mola19/openrgb-sdk"
 	}
 }

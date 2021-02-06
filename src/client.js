@@ -151,7 +151,7 @@ module.exports = class Client {
 		
 		if (typeof custom != "undefined") {
 			if (custom.random) {
-				if (!modeData.flagList.includes("perLedColor")) throw new Error("Random color can't be chosen")
+				if (!modeData.flagList.includes("randomColor")) throw new Error("Random color can't be chosen")
 				modeData.colorMode = 3
 			} else if (modeData.flagList.includes("modeSpecificColor")) {
 				modeData.colorMode = 2
