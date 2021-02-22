@@ -7,9 +7,9 @@ module.exports = {
 	 */
 	color: function (r, g, b) {
 		return {
-			red: isNaN(+r) ? 0 : +r > 255 ? 255 : +r,
-			green: isNaN(+g) ? 0 : +g > 255 ? 255 : +g,
-			blue: isNaN(+b) ? 0 : +b > 255 ? 255 : +b,
+			red: Math.floor(isNaN(+r) ? 0 : +r > 255 ? 255 : +r),
+			green: Math.floor(isNaN(+g) ? 0 : +g > 255 ? 255 : +g),
+			blue: Math.floor(isNaN(+b) ? 0 : +b > 255 ? 255 : +b),
 		}
 	},
 	/**

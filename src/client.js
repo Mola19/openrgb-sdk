@@ -1,3 +1,4 @@
+const EventEmitter = require("events")
 const { Socket } = require("net")
 const { PromiseSocket } = require("promise-socket")
 const { Buffer } = require("buffer")
@@ -7,24 +8,30 @@ const utils = require("./utils.js")
 const Device = require("./device")
 const HEADER_SIZE = 16
 
-module.exports = class Client {
+module.exports = class Client extends EventEmitter {
 	/**
 	 * @param {string} name name for the client
 	 * @param {number} port port of the connection
 	 * @param {string} host host of the connection
 	 */
 	constructor (name, port, host) {
+		super()
+
 		this.name = name || "nodejs"
-		this.port = port || 6742
+		this.port = +port || 6742
 		this.host = host || "localhost"
 	}
 	/**
 	 * connect to the OpenRGB-SDK-server
 	 */
 	async connect () {
-		this.socket = new PromiseSocket(new Socket())
+		let socket = new Socket()
+		this.socket = new PromiseSocket(socket)
 		await this.socket.connect(this.port, this.host)
-		
+
+		this.emit("connect")
+		socket.on("close", () => this.emit("disconnect"))
+
 		const nameBytes = new TextEncoder().encode(this.name)
 		await this.sendMessage(utils.command.setClientName, nameBytes)
 	}
@@ -160,25 +167,22 @@ module.exports = class Client {
 			} else {
 				modeData.colorMode = 0
 			}
-			if (custom.speed) {
+			if (!isNaN(+custom.speed)) {
 				if (modeData.flagList.includes("speed")) {
-					if (typeof custom.speed != "number") throw new Error("Speed must be an Integer")
-						if (custom.speed < modeData.speedMin || custom.speed > modeData.speedMax) throw new Error("Speed either to high or to low")
-						if ((custom.speed % 1) != 0) throw new Error("Speed must be a round number")
-						modeData.speed = custom.speed
+					if (custom.speed < modeData.speedMin || custom.speed > modeData.speedMax) throw new Error("Speed either to high or to low")
+					if ((custom.speed % 1) != 0) throw new Error("Speed must be a round number")
+					modeData.speed = custom.speed
 				} else throw new Error("Speed can't be set for this mode")
 			}
-			if (custom.direction) {
+			if (!isNaN(+custom.direction)) {
 				if (modeData.flagList.includes("direction")) {
-					if (typeof custom.direction == "number") {
-						let arr = ["directionLR", "directionUD", "directionHV"]
-
-						if (modeData.flagList.includes(arr[Math.floor(custom.direction / 2)])) {
-							modeData.direction = custom.direction
-						} else throw new Error("Can't set direction to this value")
-						
-						if ((custom.direction % 1) != 0) throw new Error("Direction must be a round number")
-					}
+					let arr = ["directionLR", "directionUD", "directionHV"]
+					if (modeData.flagList.includes(arr[Math.floor(custom.direction / 2)])) {
+						modeData.direction = custom.direction
+					} else throw new Error("Can't set direction to this value")
+					
+					if ((custom.direction % 1) != 0) throw new Error("Direction must be a round number")
+					
 				} else throw new Error("Direction can't be set for this mode")
 			}
 			if (custom.colors) {

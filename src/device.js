@@ -30,12 +30,12 @@ module.exports = class Device {
 
 		this.leds = []
 		for (let ledIndex = 0; ledIndex < ledCount; ledIndex++) {
-			const { text: ledName, length: ledNameLength } = readString(buffer, offset)
-			offset += ledNameLength
+			const { text, length } = readString(buffer, offset)
+			offset += length
 			const color = readColor(buffer, offset)
 			offset += 4
 			this.leds.push({
-				name: ledName,
+				name: text,
 				value: color
 			})
 		}
