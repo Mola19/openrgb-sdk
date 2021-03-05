@@ -34,7 +34,7 @@ module.exports = {
 	HSLColor:  function (h, s, l) {
 		let r, g, b
 
-		h = (isNaN(+h) ? 0 : +h >= 360 ? 359 : +h) / 360
+		h = isNaN(+h) ? 0 : h % 360
 		s = isNaN(+s) ? 0 : +s > 1 ? 1 : +s
 		l = isNaN(+l) ? 0 : +l > 1 ? 1 : +l
 
@@ -67,7 +67,7 @@ module.exports = {
 	HSVColor: function (h, s, v) {
 		let r, g, b
 
-		h = isNaN(+h) ? 0 : +h >= 360 ? 359 : +h
+		h = isNaN(+h) ? 0 : h % 360
 		s = isNaN(+s) ? 0 : +s > 1 ? 1 : +s
 		v = isNaN(+v) ? 0 : +v > 1 ? 1 : +v
 
@@ -105,7 +105,7 @@ module.exports = {
 	 * outputs a random color, that is more colourful than .randomColor()
 	 */
 	randomHColor: function () {
-		return this.HSLColor(Math.floor(Math.random() * 359), Math.random() * 0.3 + 0.7, Math.random() * 0.5 + 0.25)
+		return this.HSLColor(Math.floor(Math.random() * 359), Math.random() * 0.2 + 0.8, Math.random() * 0.5 + 0.5)
 	},
 	command: {
 		requestControllerCount: 0,

@@ -32,7 +32,8 @@ module.exports = class Client extends EventEmitter {
 		this.emit("connect")
 		socket.on("close", () => this.emit("disconnect"))
 
-		const nameBytes = new TextEncoder().encode(this.name)
+		let nameBytes = new TextEncoder().encode(this.name)
+		nameBytes = Buffer.concat([nameBytes, Buffer.from([0x00])])
 		await this.sendMessage(utils.command.setClientName, nameBytes)
 	}
 	/**

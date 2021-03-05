@@ -2,5 +2,5 @@
 	- beautify and make code more consistent and readable
 	? move functions to classes e.g. updatemode in device
 [ functionality ]
-	- matrix
 	- add deviceListUpdated
+	- profiles
