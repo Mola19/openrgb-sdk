@@ -1,6 +1,7 @@
 [ general ]
 	- beautify and make code more consistent and readable
 	? move functions to classes e.g. updatemode in device
+	? fix wrong order updateLeds updateMode
 [ functionality ]
 	- add deviceListUpdated
 	- profiles

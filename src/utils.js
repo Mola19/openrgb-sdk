@@ -40,11 +40,11 @@ module.exports = {
 
 		if (s != 0) {
 			function h2rgb (p, q, t) {
-				if(t < 0) t += 1
-				if(t > 1) t -= 1
-				if(t < 1/6) return p + (q - p) * 6 * t
-				if(t < 1/2) return q
-				if(t < 2/3) return p + (q - p) * (2/3 - t) * 6
+				if ( t < 0 ) t += 1
+				if ( t > 1 ) t -= 1
+				if ( t < 1/6 ) return p + (q - p) * 6 * t
+				if ( t < 1/2 ) return q
+				if ( t < 2/3 ) return p + (q - p) * (2/3 - t) * 6
 				return p
 			}
 	
@@ -80,12 +80,12 @@ module.exports = {
 			let t = v * (1 - s * (1 - f))
 	
 			switch (i) {
-				case 0: r = v, g = t, b = p; break;
-				case 1: r = q, g = v, b = p; break;
-				case 2: r = p, g = v, b = t; break;
-				case 3: r = p, g = q, b = v; break;
-				case 4: r = t, g = p, b = v; break;
-				default: r = v, g = p, b = q; break;
+				case 0: r = v, g = t, b = p; break
+				case 1: r = q, g = v, b = p; break
+				case 2: r = p, g = v, b = t; break
+				case 3: r = p, g = q, b = v; break
+				case 4: r = t, g = p, b = v; break
+				default: r = v, g = p, b = q; break
 			}
 		} else r = g = b = v;
 
@@ -105,7 +105,7 @@ module.exports = {
 	 * outputs a random color, that is more colourful than .randomColor()
 	 */
 	randomHColor: function () {
-		return this.HSLColor(Math.floor(Math.random() * 359), Math.random() * 0.2 + 0.8, Math.random() * 0.5 + 0.5)
+		return this.HSVColor(Math.floor(Math.random() * 359), Math.random() * 0.2 + 0.8, Math.random() * 0.5 + 0.5)
 	},
 	command: {
 		requestControllerCount: 0,
@@ -133,7 +133,9 @@ module.exports = {
 		headsetStand: 9,
 		gamepad: 10,
 		light: 11,
-		unknown: 12
+		speaker: 12,
+		virtual: 13,
+		unknown: 14
 	},
 	direction: {
 		left: 0,

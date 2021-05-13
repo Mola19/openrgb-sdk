@@ -128,7 +128,7 @@ function readZones (buffer, zoneCount, offset) {
 		offset+=2
 		if (matrixSize) {
 			zone.matrix = {}
-			zone.matrix.size = matrixSize - 8
+			zone.matrix.size = matrixSize / 4 - 2
 			zone.matrix.height = bufferpack.unpack("<I", buffer, offset)[0]
 			zone.matrix.width = bufferpack.unpack("<I", buffer, offset + 4)[0]
 	

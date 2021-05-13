@@ -1,7 +1,8 @@
-version 0.4.1
+version 0.4.2
 [ functionality ]
-	- added matrix
+	- added isConnected boolean to Client
+	- color now possible in options even if mode has perLedColor (seperate updateLeds request)
+	- added speaker and virtual device types
 [ fixes ]
-	- fixed name displayed in openrgb
-[ misc ]
-	- changed how h is handled when value is higher than 360 in utils.HSLColor and utils.HSVColor
+	- fixed matrix size
+	- altered updateMode

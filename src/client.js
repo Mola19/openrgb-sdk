@@ -20,6 +20,8 @@ module.exports = class Client extends EventEmitter {
 		this.name = name || "nodejs"
 		this.port = +port || 6742
 		this.host = host || "localhost"
+
+		this.isConnected = false
 	}
 	/**
 	 * connect to the OpenRGB-SDK-server
@@ -30,7 +32,12 @@ module.exports = class Client extends EventEmitter {
 		await this.socket.connect(this.port, this.host)
 
 		this.emit("connect")
-		socket.on("close", () => this.emit("disconnect"))
+		this.isConnected = true
+
+		socket.on("close", () => {
+			this.emit("disconnect")
+			this.isConnected = false
+		})
 
 		let nameBytes = new TextEncoder().encode(this.name)
 		nameBytes = Buffer.concat([nameBytes, Buffer.from([0x00])])
@@ -187,11 +194,13 @@ module.exports = class Client extends EventEmitter {
 				} else throw new Error("Direction can't be set for this mode")
 			}
 			if (custom.colors) {
-				if (modeData.colorMode == 3) throw new Error("Color can't be set if the colormode is random")
-				if (modeData.colorMode == 1) throw new Error("Color must be set over UpdateLeds if colormode is perLed")
-				if (modeData.colorLength <= 0) throw new Error("Color can't be set for this mode")
-				if (custom.colors.length > modeData.colorMax) throw new Error("Too many colors.")
-				modeData.colors = custom.colors
+				if (modeData.colorMode == 1) {
+					await this.updateLeds(deviceId, custom.colors)
+				} else {
+					if (custom.colors.length > modeData.colorMax) throw new Error("Too many colors.")
+					if (modeData.colorLength <= 0) throw new Error("Color can't be set for this mode")
+					modeData.colors = custom.colors
+				}
 			}
 		}
 		
