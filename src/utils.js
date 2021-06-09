@@ -20,9 +20,9 @@ module.exports = {
 		if (/^#/g.test(hex)) hex = hex.slice(1)
 
 		return {
-			red: parseInt(hex?.slice(0, 2), 16) || 0,
-			green: parseInt(hex?.slice(2, 4), 16) || 0,
-			blue: parseInt(hex?.slice(4, 6), 16) || 0,
+			red: hex ? parseInt(hex.slice(0, 2), 16) || 0 : 0,
+			green: hex ? parseInt(hex.slice(2, 4), 16) || 0 : 0,
+			blue: hex ? parseInt(hex.slice(4, 6), 16) || 0 : 0,
 		}
 	},
 	/**

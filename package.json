@@ -1,13 +1,15 @@
 {
 	"name": "openrgb-sdk",
-	"version": "0.4.2",
+	"version": "0.4.3",
 	"description": "An SDK client for the RGB Software OpenRGB",
 	"main": "src/index.js",
 	"scripts": {
 		"rainbow": "node examples/rainbow"
 	},
 	"keywords": [
-		"openrgb"
+		"openrgb",
+		"rgb",
+		"lighting control"
 	],
 	"author": "mola19",
 	"license": "ISC",

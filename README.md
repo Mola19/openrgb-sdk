@@ -2,7 +2,7 @@
 
 An SDK client for the RGB Software [OpenRGB](https://gitlab.com/CalcProgrammer1/OpenRGB/ "gitlab/CalcProgramer1/OpenRGB")
 
-It is based on the already written, but apparently abandoned, [node.js OpenRGB](https://github.com/vlakreeh/openrgb "github/vlakreeh/openrgb") library by [vlakreeh](https://github.com/vlakreeh "vlakreeh") and the [Python implementation](https://github.com/jath03/openrgb-python "github/jath03/openrgb-python") by [jath03](https://github.com/jath03 "jath03").
+It is based on the already written, but apparently abandoned, [node.js OpenRGB](https://github.com/zebp/openrgb "github/vlakreeh/openrgb") library by [vlakreeh](https://github.com/zebp "vlakreeh") and the [Python implementation](https://github.com/jath03/openrgb-python "github/jath03/openrgb-python") by [jath03](https://github.com/jath03 "jath03").
 
 It is still under heavy development, poorly written, and inconvenient to use, but since I'll probably forget this project in the next 5 seconds, I wanted to make this accessible for later generations of confused people.
 

@@ -47,7 +47,7 @@ module.exports = class Client extends EventEmitter {
 	 * disconnect from the OpenRGB-SDK-server
 	 */
 	async disconnect () {
-		await this.socket?.end()
+		if (this.isConnected) await this.socket.end()
 	}
 	/**
 	 * get the amount of devices
@@ -237,23 +237,19 @@ module.exports = class Client extends EventEmitter {
 	 * @private
 	 */
 	async sendMessage (commandId, buffer = Buffer.alloc(0), deviceId) {
+		if (!this.isConnected) throw new Error("can't write to socket if not connected to OpenRGB")
 		const header = this.encodeHeader(commandId, buffer.byteLength, deviceId)
 		const packet = Buffer.concat([header, buffer])
-		await this.socket?.write(packet)
+		await this.socket.write(packet)
 	}
 	/**
 	 * @private
 	 */
 	async readMessage () {
-		const headerBuffer = await this.socket?.read(HEADER_SIZE)
-		if (headerBuffer === undefined) {
-			throw new Error("connection has ended")
-		}
+		if (!this.isConnected) throw new Error("can't read from socket if not connected to OpenRGB")
+		const headerBuffer = await this.socket.read(HEADER_SIZE)
 		const header = this.decodeHeader(headerBuffer)
-		const packetBuffer = await this.socket?.read(header.length)
-		if (packetBuffer === undefined) {
-			throw new Error("connection has ended")
-		}
+		const packetBuffer = await this.socket.read(header.length)
 		return packetBuffer
 	}
 	/**

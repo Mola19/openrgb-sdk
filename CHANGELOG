@@ -1,8 +1,7 @@
-version 0.4.2
+version 0.4.3
 [ functionality ]
-	- added isConnected boolean to Client
-	- color now possible in options even if mode has perLedColor (seperate updateLeds request)
-	- added speaker and virtual device types
-[ fixes ]
-	- fixed matrix size
-	- altered updateMode
+	- now usable with node versions under 14
+[ misc ]
+	- keywords added
+	- deleted package-lock.json
+	- updated README.md
