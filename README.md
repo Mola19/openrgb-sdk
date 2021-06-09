@@ -12,14 +12,6 @@ It is still under heavy development, poorly written, and inconvenient to use, bu
 $ npm install openrgb-sdk
 ```
 
-This Package requires node.js version 14 or higher. To check your node version use:
-
-```
-$ node -v
-```
-
-and, if required, [install the latest version.](https://nodejs.org/en/download/)
-
 # Table of Content
 
 - [About](#about)
