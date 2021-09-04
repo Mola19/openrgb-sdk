@@ -1,7 +1,13 @@
-version 0.4.3
+version 0.5.0
+[ general ]
+	- dropped promise-socket dependency
 [ functionality ]
-	- now usable with node versions under 14
+	- deviceListUpdated event when openrgb detects a new device
+	- getAllControllerData function which returns all devices
 [ misc ]
-	- keywords added
-	- deleted package-lock.json
-	- updated README.md
+	- command numbers added in utils
+	- deleted useless tabs
+	- many functions aren't async anymore
+	- fixed jsdocs
+	- failed connect doesn't throw error anymore ( bug, will hopefully be fixed in the future, for now use connect event)
+

@@ -1,7 +1,5 @@
 const EventEmitter = require("events")
 const { Socket } = require("net")
-const { PromiseSocket } = require("promise-socket")
-const { Buffer } = require("buffer")
 const bufferpack = require("bufferpack")
 
 const utils = require("./utils.js")
@@ -22,48 +20,83 @@ module.exports = class Client extends EventEmitter {
 		this.host = host || "localhost"
 
 		this.isConnected = false
+		this.resolver = {}
 	}
 	/**
 	 * connect to the OpenRGB-SDK-server
 	 */
-	async connect () {
-		let socket = new Socket()
-		this.socket = new PromiseSocket(socket)
-		await this.socket.connect(this.port, this.host)
+	connect () {
+		this.socket = new Socket()
+		this.socket.connect(this.port, this.host)
 
-		this.emit("connect")
 		this.isConnected = true
 
-		socket.on("close", () => {
-			this.emit("disconnect")
-			this.isConnected = false
+		this.socket.once("connect", () => {
+			this.socket.on("close", () => {
+				this.emit("disconnect")
+				this.isConnected = false
+			})
+		})
+
+		this.socket.on("readable", () => {
+			let packet = this.socket.read()
+			if (!packet) return
+			if (this.resolver.resolve) {
+				if (this.resolver.header) {
+					if (this.resolver.header.length != packet.length) return //TODO return smth
+					delete this.resolver.header
+					return this.resolver.resolve(packet)
+				}
+
+				const headerBuffer = packet.slice(0, HEADER_SIZE)
+				const header = this.decodeHeader(headerBuffer)
+
+				if (packet.length < HEADER_SIZE + header.length) {
+					return this.resolver.header = header
+				}
+
+				this.resolver.resolve(packet.slice(HEADER_SIZE))
+				this.resolver = {}
+			} else {
+				if (packet.readUInt32LE(8) == utils.command.deviceListUpdated) {
+					this.emit("deviceListUpdated")
+				}
+			}
+		})
+
+		this.socket.on("error", (err) => { 
+			this.emit("error", err)
 		})
 
 		let nameBytes = new TextEncoder().encode(this.name)
 		nameBytes = Buffer.concat([nameBytes, Buffer.from([0x00])])
-		await this.sendMessage(utils.command.setClientName, nameBytes)
+		this.sendMessage(utils.command.setClientName, nameBytes)
+		this.emit("connect")
 	}
 	/**
 	 * disconnect from the OpenRGB-SDK-server
 	 */
-	async disconnect () {
-		if (this.isConnected) await this.socket.end()
+	disconnect () {
+		if (this.isConnected) {
+			this.socket.end()
+			this.resolver = {}
+		}
 	}
 	/**
 	 * get the amount of devices
 	 * @returns {Promise<number>}
 	 */
 	async getControllerCount () {
-		await this.sendMessage(utils.command.requestControllerCount)
+		this.sendMessage(utils.command.requestControllerCount)
 		const buffer = await this.readMessage()
 		return buffer.readUInt32LE()
 	}
 	/**
 	 * get the protocol version
-	 * @returns {Promise<string>}
+	 * @returns {Promise<number>}
 	 */
 	async getProtocolVersion () {
-		await this.sendMessage(utils.command.requestProtocolVersion)
+		this.sendMessage(utils.command.requestProtocolVersion)
 		const buffer = await this.readMessage()
 		return buffer.readUInt32LE()
 	}
@@ -73,16 +106,26 @@ module.exports = class Client extends EventEmitter {
 	 * @returns {Promise<Device>}
 	 */
 	async getControllerData (deviceId) {
-		await this.sendMessage(utils.command.requestControllerData, undefined, deviceId)
+		this.sendMessage(utils.command.requestControllerData, undefined, deviceId)
 		const buffer = await this.readMessage()
 		return new Device(buffer, deviceId)
 	}
 	/**
+	 * get the properties of all devices
+	 * @returns {Promise<Device>[]}
+	 */
+	async getAllControllerData () {
+		let devices = []
+		for (let i = 0; i < await this.getControllerCount(); i++) {
+			devices.push(await this.getControllerData(i))
+		}
+	}
+	/**
 	 * update all leds of a device
 	 * @param {number} deviceId the id of the device
-	 * @param {Array<object>} colors the colors the device should be set to
+	 * @param {Object[]} colors the colors the device should be set to
 	 */
-	async updateLeds (deviceId, colors) {
+	updateLeds (deviceId, colors) {
 		const size = 2 + (4 * colors.length)
 
 		const colorsBuffer = Buffer.alloc(size)
@@ -99,15 +142,15 @@ module.exports = class Client extends EventEmitter {
 		const prefixBuffer = Buffer.alloc(4)
 		prefixBuffer.writeUInt32LE(size)
 
-		await this.sendMessage(utils.command.updateLeds, Buffer.concat([prefixBuffer, colorsBuffer]), deviceId)
+		this.sendMessage(utils.command.updateLeds, Buffer.concat([prefixBuffer, colorsBuffer]), deviceId)
 	}
 	/**
 	 * update all leds of a device
 	 * @param {number} deviceId the id of the device
 	 * @param {number} zoneId the id of the zone
-	 * @param {Array<object>} colors the colors the zone should be set to
+	 * @param {Object[]} colors the colors the zone should be set to
 	 */
-	async updateZoneLeds (deviceId, zoneId, colors) {
+	updateZoneLeds (deviceId, zoneId, colors) {
 		const size = 6 + (4 * colors.length)
 		const colorsBuffer = Buffer.alloc(size)
 		colorsBuffer.writeUInt32LE(zoneId)
@@ -121,7 +164,7 @@ module.exports = class Client extends EventEmitter {
 		}
 		const prefixBuffer = Buffer.alloc(4)
 		prefixBuffer.writeUInt32LE(size)
-		await this.sendMessage(utils.command.updateZoneLeds, Buffer.concat([prefixBuffer, colorsBuffer]), deviceId)
+		this.sendMessage(utils.command.updateZoneLeds, Buffer.concat([prefixBuffer, colorsBuffer]), deviceId)
 	}
 	/**
 	 * update all leds of a device
@@ -129,17 +172,17 @@ module.exports = class Client extends EventEmitter {
 	 * @param {number} ledId the id of the led
 	 * @param {Object} colors the color the led should be set to
 	 */
-	async updateSingleLed (deviceId, ledId, color) {
+	updateSingleLed (deviceId, ledId, color) {
 		let buff = Buffer.concat([bufferpack.pack("<I", [ledId]), bufferpack.pack("<BBB", [color.red, color.green, color.blue]), new Buffer.alloc(1)])
-		await this.sendMessage(utils.command.updateSingleLed, buff, deviceId)
+		this.sendMessage(utils.command.updateSingleLed, buff, deviceId)
 	}
 	/**
 	 * sets the device to its mode for individual led control
 	 * @param {number} deviceId the id of the requested device
 	 * @returns {Promise<Device>}
 	 */
-	async setCustomMode (deviceId) {
-		await this.sendMessage(utils.command.setCustomMode, undefined, deviceId)
+	setCustomMode (deviceId) {
+		this.sendMessage(utils.command.setCustomMode, undefined, deviceId)
 	}
 	/**
 	 * update all leds of a device
@@ -163,7 +206,7 @@ module.exports = class Client extends EventEmitter {
 		} else throw new Error("arg mode is either not given or not an instance of string or number")
 
 		if (typeof custom != "object" && typeof custom != "undefined") throw new Error("3rd argument must be either an object ore undefined")
-		
+
 		if (typeof custom != "undefined") {
 			if (custom.random) {
 				if (!modeData.flagList.includes("randomColor")) throw new Error("Random color can't be chosen")
@@ -188,14 +231,14 @@ module.exports = class Client extends EventEmitter {
 					if (modeData.flagList.includes(arr[Math.floor(custom.direction / 2)])) {
 						modeData.direction = custom.direction
 					} else throw new Error("Can't set direction to this value")
-					
+
 					if ((custom.direction % 1) != 0) throw new Error("Direction must be a round number")
-					
+
 				} else throw new Error("Direction can't be set for this mode")
 			}
 			if (custom.colors) {
 				if (modeData.colorMode == 1) {
-					await this.updateLeds(deviceId, custom.colors)
+					this.updateLeds(deviceId, custom.colors)
 				} else {
 					if (custom.colors.length > modeData.colorMax) throw new Error("Too many colors.")
 					if (modeData.colorLength <= 0) throw new Error("Color can't be set for this mode")
@@ -203,7 +246,7 @@ module.exports = class Client extends EventEmitter {
 				}
 			}
 		}
-		
+
 		let data = Buffer.concat([
 			bufferpack.pack("<I", [modeData.id]),
 			this.pack_string(modeData.name),
@@ -222,7 +265,7 @@ module.exports = class Client extends EventEmitter {
 		])
 		data = Buffer.concat([bufferpack.pack("<I", [data.length, bufferpack.calcLength("<I")]), data])
 
-		await this.sendMessage(utils.command.updateMode, data, deviceId)
+		this.sendMessage(utils.command.updateMode, data, deviceId)
 	}
 	/**
 	 * update all leds of a device
@@ -230,27 +273,24 @@ module.exports = class Client extends EventEmitter {
 	 * @param {number} zoneId the id of the zone
 	 * @param {number} zoneLength the length the zone should be set to
 	 */
-	async resizeZone (deviceId, zoneId, zoneLength) {
-		await this.sendMessage(utils.command.resizeZone, bufferpack.pack("<ii", [zoneId, zoneLength]), deviceId)
+	resizeZone (deviceId, zoneId, zoneLength) {
+		this.sendMessage(utils.command.resizeZone, bufferpack.pack("<ii", [zoneId, zoneLength]), deviceId)
 	}
 	/**
 	 * @private
 	 */
-	async sendMessage (commandId, buffer = Buffer.alloc(0), deviceId) {
+	sendMessage (commandId, buffer = Buffer.alloc(0), deviceId) {
 		if (!this.isConnected) throw new Error("can't write to socket if not connected to OpenRGB")
 		const header = this.encodeHeader(commandId, buffer.byteLength, deviceId)
 		const packet = Buffer.concat([header, buffer])
-		await this.socket.write(packet)
+		this.socket.write(packet)
 	}
 	/**
 	 * @private
 	 */
 	async readMessage () {
 		if (!this.isConnected) throw new Error("can't read from socket if not connected to OpenRGB")
-		const headerBuffer = await this.socket.read(HEADER_SIZE)
-		const header = this.decodeHeader(headerBuffer)
-		const packetBuffer = await this.socket.read(header.length)
-		return packetBuffer
+		return new Promise(resolve => this.resolver.resolve = resolve)
 	}
 	/**
 	 * @private
@@ -262,7 +302,7 @@ module.exports = class Client extends EventEmitter {
 		index = buffer.writeUInt32LE(deviceId, index)
 		index = buffer.writeUInt32LE(commandId, index)
 		index = buffer.writeUInt32LE(length, index)
-		
+
 		return buffer
 	}
 	/**

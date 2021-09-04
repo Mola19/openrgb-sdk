@@ -47,7 +47,7 @@ module.exports = {
 				if ( t < 2/3 ) return p + (q - p) * (2/3 - t) * 6
 				return p
 			}
-	
+
 			let q = l < 0.5 ? l * (1 + s) : l + s - l * s
 			let p = 2 * l - q
 
@@ -78,7 +78,7 @@ module.exports = {
 			let p = v * (1 - s)
 			let q = v * (1 - s * f)
 			let t = v * (1 - s * (1 - f))
-	
+
 			switch (i) {
 				case 0: r = v, g = t, b = p; break
 				case 1: r = q, g = v, b = p; break
@@ -113,6 +113,10 @@ module.exports = {
 		requestProtocolVersion: 40,
 		setClientName: 50,
 		deviceListUpdated: 100,
+		requestProfileList: 150,
+		saveProfile: 151,
+		loadProfile: 152,
+		deleteProfile: 153,
 		resizeZone: 1000,
 		updateLeds: 1050,
 		updateZoneLeds: 1051,

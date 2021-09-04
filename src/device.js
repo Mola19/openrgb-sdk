@@ -3,11 +3,11 @@ const bufferpack = require("bufferpack")
 module.exports = class Device {
 	constructor (buffer, deviceId) {
 		this.deviceId = deviceId
-		
+
 		let offset = 4
 		this.type = buffer.readUInt32LE(offset)
 		offset += 4;
-		
+
 		["name", "description", "version", "serial", "location"].forEach(value => {
 			let { text, length } = readString(buffer, offset)
 			this[value] = text
@@ -72,7 +72,7 @@ function readModes (buffer, modeCount, offset) {
 		offset += 2
 
 		mode.colors = []
-		
+
 		mode.flagList = []
 
 		let flagcheck = Math.abs(mode.flags).toString(2)
@@ -131,9 +131,9 @@ function readZones (buffer, zoneCount, offset) {
 			zone.matrix.size = matrixSize / 4 - 2
 			zone.matrix.height = bufferpack.unpack("<I", buffer, offset)[0]
 			zone.matrix.width = bufferpack.unpack("<I", buffer, offset + 4)[0]
-	
+
 			offset += 8
-	
+
 			zone.matrix.keys = []
 			for (let index = 0; index < zone.matrix.height; index++) {
 				zone.matrix.keys[index] = []
