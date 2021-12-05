@@ -1,14 +1,20 @@
 const bufferpack = require("bufferpack")
 
 module.exports = class Device {
-	constructor (buffer, deviceId) {
+	constructor (buffer, deviceId, protocolVersion) {
 		this.deviceId = deviceId
 
 		let offset = 4
 		this.type = buffer.readUInt32LE(offset)
 		offset += 4;
 
-		["name", "description", "version", "serial", "location"].forEach(value => {
+		let arr = ["name", "description", "version", "serial", "location"]
+
+		if (protocolVersion >= 1) {
+			arr = ["name", "vendor", "description", "version", "serial", "location"]
+		}
+
+		arr.forEach(value => {
 			let { text, length } = readString(buffer, offset)
 			this[value] = text
 			offset += length
@@ -18,7 +24,7 @@ module.exports = class Device {
 		offset += 2
 		this.activeMode = buffer.readUInt32LE(offset)
 		offset += 4
-		const { modes, offset: readModesOffset } = readModes(buffer, modeCount, offset)
+		const { modes, offset: readModesOffset } = readModes(buffer, modeCount, offset, protocolVersion)
 		this.modes = modes
 		offset = readModesOffset
 		const zoneCount = buffer.readUInt16LE(offset)
@@ -53,7 +59,7 @@ module.exports = class Device {
 	}
 }
 
-function readModes (buffer, modeCount, offset) {
+function readModes (buffer, modeCount, offset, protocolVersion) {
 	const modes = []
 	for (let modeIndex = 0; modeIndex < modeCount; modeIndex++) {
 		let mode = {}
@@ -62,12 +68,20 @@ function readModes (buffer, modeCount, offset) {
 
 		let { text: modeName, length: modeNameLength } = readString(buffer, offset)
 		mode.name = modeName
-		offset += modeNameLength;
 
-		["value", "flags", "speedMin", "speedMax", "colorMin", "colorMax", "speed", "direction", "colorMode"].forEach(value => {
+		offset += modeNameLength
+
+		let arr = ["value", "flags", "speedMin", "speedMax", "colorMin", "colorMax", "speed", "direction", "colorMode"]
+
+		if (protocolVersion >= 3) {
+			arr = ["value", "flags", "speedMin", "speedMax", "brightnessMin", "brightnessMax", "colorMin", "colorMax", "speed", "brightness", "direction", "colorMode"]
+		}
+
+		arr.forEach(value => {
 			mode[value] = buffer.readInt32LE(offset)
 			offset += 4
 		})
+
 		mode.colorLength = buffer.readUInt16LE(offset)
 		offset += 2
 
@@ -75,12 +89,19 @@ function readModes (buffer, modeCount, offset) {
 
 		mode.flagList = []
 
+		let flags = ["speed", "directionLR", "directionUD", "directionHV", "perLedColor", "modeSpecificColor", "randomColor"]
+
+		if (protocolVersion >= 3) {
+			flags = ["speed", "directionLR", "directionUD", "directionHV", "brightness", "perLedColor", "modeSpecificColor", "randomColor", "manualSave", "automaticSave"]
+		}
+
 		let flagcheck = Math.abs(mode.flags).toString(2)
-		flagcheck = Array(8 - flagcheck.length).concat(flagcheck.split("")).reverse()
-		const flags = ["speed", "directionLR", "directionUD", "directionHV", "brightness", "perLedColor", "modeSpecificColor", "randomColor"]
+		flagcheck = Array(flags.length - flagcheck.length).concat(flagcheck.split("")).reverse()
+
 		flagcheck.forEach((el, i) => {
 			if (el == "1") mode.flagList.push(flags[i])
 		})
+
 		if (+flagcheck[1] || +flagcheck[2] || +flagcheck[3]) {
 			mode.flagList.push("direction")
 		}
@@ -89,6 +110,12 @@ function readModes (buffer, modeCount, offset) {
 			mode.speedMin = 0
 			mode.speedMax = 0
 			mode.speed = 0
+		}
+
+		if (protocolVersion >= 3 && !+flagcheck[4]) {
+			mode.brightnessMin = 0
+			mode.brightnessMax = 0
+			mode.brightness = 0
 		}
 
 		if (!+flagcheck[1] && !+flagcheck[2] && !+flagcheck[3]) {

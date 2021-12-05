@@ -1,6 +1,6 @@
 {
 	"name": "openrgb-sdk",
-	"version": "0.5.0-beta.1",
+	"version": "0.5.0-beta.2",
 	"description": "An SDK client for the RGB Software OpenRGB",
 	"main": "src/index.js",
 	"scripts": {
@@ -20,5 +20,8 @@
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/mola19/openrgb-sdk"
+	},
+	"engines": {
+		"node": ">=8.3"
 	}
 }

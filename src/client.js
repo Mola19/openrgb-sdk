@@ -3,8 +3,10 @@ const { Socket } = require("net")
 const bufferpack = require("bufferpack")
 
 const utils = require("./utils.js")
-const Device = require("./device")
+const Device = require("./device.js")
+
 const HEADER_SIZE = 16
+const clientProcotolVersion = 3
 
 module.exports = class Client extends EventEmitter {
 	/**
@@ -15,17 +17,19 @@ module.exports = class Client extends EventEmitter {
 	constructor (name, port, host) {
 		super()
 
-		this.name = name || "nodejs"
+		this.name = name  || "nodejs"
 		this.port = +port || 6742
-		this.host = host || "localhost"
+		this.host = host  || "127.0.0.1"
+
+		if (this.host == "localhost") this.host = "127.0.0.1" // node v17 doesn't acccept localhost anymore (bug?)
 
 		this.isConnected = false
-		this.resolver = {}
+		this.resolver = []
 	}
 	/**
 	 * connect to the OpenRGB-SDK-server
 	 */
-	connect () {
+	async connect () {
 		this.socket = new Socket()
 		this.socket.connect(this.port, this.host)
 
@@ -38,28 +42,35 @@ module.exports = class Client extends EventEmitter {
 			})
 		})
 
+		this.socketQueue = 0
+
 		this.socket.on("readable", () => {
-			let packet = this.socket.read()
-			if (!packet) return
-			if (this.resolver.resolve) {
-				if (this.resolver.header) {
-					if (this.resolver.header.length != packet.length) return //TODO return smth
-					delete this.resolver.header
-					return this.resolver.resolve(packet)
+			while (true) {
+				if (this.socketQueue > 0) {
+					let res = this.socket.read(this.socketQueue)
+					if (!res) return
+
+					this.socketQueue = 0
+
+					if (this.resolver.length) {
+						resolve.bind(this)(Buffer.concat([this.resolver[0].header, res]))
+					}
 				}
+	
+				let header = this.socket.read(HEADER_SIZE)
+				if (!header) return
 
-				const headerBuffer = packet.slice(0, HEADER_SIZE)
-				const header = this.decodeHeader(headerBuffer)
+				if (!(header.slice(0, 4).equals(Buffer.from([0x4f, 0x52, 0x47, 0x42])))) return
+				if (header.readUInt32LE(12) > 0) {
+					this.socketQueue = header.readUInt32LE(12)
 
-				if (packet.length < HEADER_SIZE + header.length) {
-					return this.resolver.header = header
-				}
-
-				this.resolver.resolve(packet.slice(HEADER_SIZE))
-				this.resolver = {}
-			} else {
-				if (packet.readUInt32LE(8) == utils.command.deviceListUpdated) {
-					this.emit("deviceListUpdated")
+					if (this.resolver.length) {
+						this.resolver[0].header = header
+					}
+				} else {
+					if (this.resolver.length) {
+						resolve.bind(this)(header)
+					}
 				}
 			}
 		})
@@ -68,9 +79,10 @@ module.exports = class Client extends EventEmitter {
 			this.emit("error", err)
 		})
 
-		let nameBytes = new TextEncoder().encode(this.name)
-		nameBytes = Buffer.concat([nameBytes, Buffer.from([0x00])])
-		this.sendMessage(utils.command.setClientName, nameBytes)
+		let serverProtocolVersion = await this.getProtocolVersion()
+		this.protocolVersion = (serverProtocolVersion < clientProcotolVersion) ? serverProtocolVersion : clientProcotolVersion
+		
+		this.setClientName(this.name)
 		this.emit("connect")
 	}
 	/**
@@ -79,7 +91,7 @@ module.exports = class Client extends EventEmitter {
 	disconnect () {
 		if (this.isConnected) {
 			this.socket.end()
-			this.resolver = {}
+			this.resolver = []
 		}
 	}
 	/**
@@ -88,7 +100,7 @@ module.exports = class Client extends EventEmitter {
 	 */
 	async getControllerCount () {
 		this.sendMessage(utils.command.requestControllerCount)
-		const buffer = await this.readMessage()
+		const buffer = await this.readMessage(utils.command.requestControllerCount)
 		return buffer.readUInt32LE()
 	}
 	/**
@@ -96,8 +108,8 @@ module.exports = class Client extends EventEmitter {
 	 * @returns {Promise<number>}
 	 */
 	async getProtocolVersion () {
-		this.sendMessage(utils.command.requestProtocolVersion)
-		const buffer = await this.readMessage()
+		this.sendMessage(utils.command.requestProtocolVersion, bufferpack.pack("<I", [clientProcotolVersion]))
+		const buffer = await this.readMessage(utils.command.requestProtocolVersion)
 		return buffer.readUInt32LE()
 	}
 	/**
@@ -105,10 +117,10 @@ module.exports = class Client extends EventEmitter {
 	 * @param {number} deviceId the id of the requested device
 	 * @returns {Promise<Device>}
 	 */
-	async getControllerData (deviceId) {
-		this.sendMessage(utils.command.requestControllerData, undefined, deviceId)
-		const buffer = await this.readMessage()
-		return new Device(buffer, deviceId)
+	async getControllerData (deviceId) { 
+		this.sendMessage(utils.command.requestControllerData, bufferpack.pack("<I", [this.protocolVersion]), deviceId)
+		const buffer = await this.readMessage(utils.command.requestControllerData, deviceId)
+		return new Device(buffer, deviceId, this.protocolVersion)
 	}
 	/**
 	 * get the properties of all devices
@@ -119,6 +131,34 @@ module.exports = class Client extends EventEmitter {
 		for (let i = 0; i < await this.getControllerCount(); i++) {
 			devices.push(await this.getControllerData(i))
 		}
+		return devices
+	}
+	/**
+	 * get a list of all profiles
+	 * @returns {Promise<String>[]}
+	 */
+	async getProfileList () {
+		this.sendMessage(utils.command.requestProfileList)
+		const buffer = (await this.readMessage(utils.command.requestProfileList)).slice(4)
+		let count = buffer.readUInt16LE()
+		let offset = 2
+		let profiles = []
+		for (let i = 0; i < count; i++) {
+			let length = buffer.readUInt16LE(offset)
+			offset += 2
+			profiles.push(bufferpack.unpack(`<${length-1}c`, buffer, offset).join(""))
+			offset += length
+		}
+		return profiles
+	}
+	/**
+	 * set the name of the client
+	 * @param {string} name the name displayed in openrgb
+	 */
+	setClientName (name) {
+		let nameBytes = new TextEncoder().encode(name)
+		nameBytes = Buffer.concat([nameBytes, Buffer.from([0x00])])
+		this.sendMessage(utils.command.setClientName, nameBytes)
 	}
 	/**
 	 * update all leds of a device
@@ -145,7 +185,7 @@ module.exports = class Client extends EventEmitter {
 		this.sendMessage(utils.command.updateLeds, Buffer.concat([prefixBuffer, colorsBuffer]), deviceId)
 	}
 	/**
-	 * update all leds of a device
+	 * update all leds of a zone
 	 * @param {number} deviceId the id of the device
 	 * @param {number} zoneId the id of the zone
 	 * @param {Object[]} colors the colors the zone should be set to
@@ -167,7 +207,7 @@ module.exports = class Client extends EventEmitter {
 		this.sendMessage(utils.command.updateZoneLeds, Buffer.concat([prefixBuffer, colorsBuffer]), deviceId)
 	}
 	/**
-	 * update all leds of a device
+	 * update one led of a device
 	 * @param {number} deviceId the id of the device
 	 * @param {number} ledId the id of the led
 	 * @param {Object} colors the color the led should be set to
@@ -185,90 +225,25 @@ module.exports = class Client extends EventEmitter {
 		this.sendMessage(utils.command.setCustomMode, undefined, deviceId)
 	}
 	/**
-	 * update all leds of a device
+	 * update the mode of a device
 	 * @param {number} deviceId the id of the device
 	 * @param {number|string} mode either the id or name of a mode
 	 * @param {Object} custom the settings of this mode e.g. speed, color etc.
 	 */
 	async updateMode (deviceId, mode, custom) {
-		//TODO: shorten and beautify
-		let modeData
-
-		if (typeof deviceId != "number") throw new Error("arg deviceId not given")
-		let device = await this.getControllerData(deviceId)
-
-		if (typeof mode == "number") {
-			if (!device.modes.filter(elem => elem.id == mode)[0]) throw new Error("Number given is not the id of a mode")
-			modeData = device.modes.filter(elem => elem.id == mode)[0]
-		} else if (typeof mode == "string") {
-			if (!device.modes.filter(elem => elem.name.toLowerCase() == mode.toLowerCase())[0]) throw new Error("Name given is not the name of a mode")
-			modeData = device.modes.filter(elem => elem.name == mode)[0]
-		} else throw new Error("arg mode is either not given or not an instance of string or number")
-
-		if (typeof custom != "object" && typeof custom != "undefined") throw new Error("3rd argument must be either an object ore undefined")
-
-		if (typeof custom != "undefined") {
-			if (custom.random) {
-				if (!modeData.flagList.includes("randomColor")) throw new Error("Random color can't be chosen")
-				modeData.colorMode = 3
-			} else if (modeData.flagList.includes("modeSpecificColor")) {
-				modeData.colorMode = 2
-			} else if (modeData.flagList.includes("perLedColor")) {
-				modeData.colorMode = 1
-			} else {
-				modeData.colorMode = 0
-			}
-			if (!isNaN(+custom.speed)) {
-				if (modeData.flagList.includes("speed")) {
-					if (custom.speed < modeData.speedMin || custom.speed > modeData.speedMax) throw new Error("Speed either to high or to low")
-					if ((custom.speed % 1) != 0) throw new Error("Speed must be a round number")
-					modeData.speed = custom.speed
-				} else throw new Error("Speed can't be set for this mode")
-			}
-			if (!isNaN(+custom.direction)) {
-				if (modeData.flagList.includes("direction")) {
-					let arr = ["directionLR", "directionUD", "directionHV"]
-					if (modeData.flagList.includes(arr[Math.floor(custom.direction / 2)])) {
-						modeData.direction = custom.direction
-					} else throw new Error("Can't set direction to this value")
-
-					if ((custom.direction % 1) != 0) throw new Error("Direction must be a round number")
-
-				} else throw new Error("Direction can't be set for this mode")
-			}
-			if (custom.colors) {
-				if (modeData.colorMode == 1) {
-					this.updateLeds(deviceId, custom.colors)
-				} else {
-					if (custom.colors.length > modeData.colorMax) throw new Error("Too many colors.")
-					if (modeData.colorLength <= 0) throw new Error("Color can't be set for this mode")
-					modeData.colors = custom.colors
-				}
-			}
-		}
-
-		let data = Buffer.concat([
-			bufferpack.pack("<I", [modeData.id]),
-			this.pack_string(modeData.name),
-			bufferpack.pack("<IIIIIIIII", [
-				modeData.value, 
-				modeData.flags, 
-				modeData.speedMin, 
-				modeData.speedMax, 
-				modeData.colorMin, 
-				modeData.colorMax, 
-				modeData.speed, 
-				modeData.direction, 
-				modeData.colorMode
-			]),
-			this.pack_list(modeData.colors ? modeData.colors : 0), 
-		])
-		data = Buffer.concat([bufferpack.pack("<I", [data.length, bufferpack.calcLength("<I")]), data])
-
-		this.sendMessage(utils.command.updateMode, data, deviceId)
+		await sendMode.bind(this)(deviceId, mode, custom, false)
 	}
 	/**
-	 * update all leds of a device
+	 * update the mode of a device and save it to the device
+	 * @param {number} deviceId the id of the device
+	 * @param {number|string} mode either the id or name of a mode
+	 * @param {Object} custom the settings of this mode e.g. speed, color etc.
+	 */
+	 async saveMode (deviceId, mode, custom) {
+		await sendMode.bind(this)(deviceId, mode, custom, true)
+	}
+	/**
+	 * resize a zone
 	 * @param {number} deviceId the id of the device
 	 * @param {number} zoneId the id of the zone
 	 * @param {number} zoneLength the length the zone should be set to
@@ -277,9 +252,36 @@ module.exports = class Client extends EventEmitter {
 		this.sendMessage(utils.command.resizeZone, bufferpack.pack("<ii", [zoneId, zoneLength]), deviceId)
 	}
 	/**
+	 * create a new profile with the current state of the devices in openrgb
+	 * @param {string} name the name of the new profile
+	 */
+	saveProfile (name) {
+		let nameBytes = new TextEncoder().encode(name)
+		nameBytes = Buffer.concat([nameBytes, Buffer.from([0x00])])
+		this.sendMessage(utils.command.saveProfile, nameBytes)
+	}
+	/**
+	 * load a profile out of the storage
+	 * @param {string} name the name of the profile that should be loaded
+	 */
+	loadProfile (name) {
+		let nameBytes = new TextEncoder().encode(name)
+		nameBytes = Buffer.concat([nameBytes, Buffer.from([0x00])])
+		this.sendMessage(utils.command.loadProfile, nameBytes)
+	}
+	/**
+	 * delete a profile out of the storage
+	 * @param {string} name the name of the profile that should be deleted
+	 */
+	deleteProfile (name) {
+		let nameBytes = new TextEncoder().encode(name)
+		nameBytes = Buffer.concat([nameBytes, Buffer.from([0x00])])
+		this.sendMessage(utils.command.deleteProfile, nameBytes)
+	}
+	/**
 	 * @private
 	 */
-	sendMessage (commandId, buffer = Buffer.alloc(0), deviceId) {
+	sendMessage (commandId, buffer = Buffer.alloc(0), deviceId = 0) {
 		if (!this.isConnected) throw new Error("can't write to socket if not connected to OpenRGB")
 		const header = this.encodeHeader(commandId, buffer.byteLength, deviceId)
 		const packet = Buffer.concat([header, buffer])
@@ -288,9 +290,9 @@ module.exports = class Client extends EventEmitter {
 	/**
 	 * @private
 	 */
-	async readMessage () {
+	async readMessage (commandId, deviceId = 0) {
 		if (!this.isConnected) throw new Error("can't read from socket if not connected to OpenRGB")
-		return new Promise(resolve => this.resolver.resolve = resolve)
+		return new Promise(resolve => this.resolver.push({resolve, commandId, deviceId}))
 	}
 	/**
 	 * @private
@@ -328,6 +330,132 @@ module.exports = class Client extends EventEmitter {
 	 * @private
 	 */
 	pack_string (string) {
-		return Buffer.concat([bufferpack.pack(`<H${string.length}s`, [string.length + 1, encodeURIComponent(string)]), Buffer.from('\x00')])
+		return Buffer.concat([bufferpack.pack(`<H${string.length}s`, [string.length + 1, string]), Buffer.from('\x00')])
+	}
+}
+
+async function sendMode (deviceId, mode, custom, save) {
+	//TODO: shorten and beautify
+	let modeData
+
+	if (typeof deviceId != "number") throw new Error("arg deviceId not given")
+	let device = await this.getControllerData(deviceId)
+
+	if (typeof mode == "number") {
+		if (!device.modes.filter(elem => elem.id == mode)[0]) throw new Error("Number given is not the id of a mode")
+		modeData = device.modes.filter(elem => elem.id == mode)[0]
+	} else if (typeof mode == "string") {
+		if (!device.modes.filter(elem => elem.name.toLowerCase() == mode.toLowerCase())[0]) throw new Error("Name given is not the name of a mode")
+		modeData = device.modes.filter(elem => elem.name == mode)[0]
+	} else throw new Error("arg mode is either not given or not an instance of string or number")
+
+	if (typeof custom != "object" && typeof custom != "undefined") throw new Error("3rd argument must be either an object ore undefined")
+
+	if (typeof custom != "undefined") {
+		if (custom.random) {
+			if (!modeData.flagList.includes("randomColor")) throw new Error("Random color can't be chosen")
+			modeData.colorMode = 3
+		} else if (modeData.flagList.includes("modeSpecificColor")) {
+			modeData.colorMode = 2
+		} else if (modeData.flagList.includes("perLedColor")) {
+			modeData.colorMode = 1
+		} else {
+			modeData.colorMode = 0
+		}
+		if (!isNaN(+custom.speed)) {
+			if (modeData.flagList.includes("speed")) {
+				if (custom.speed < modeData.speedMin || custom.speed > modeData.speedMax) throw new Error("Speed either to high or to low")
+				if ((custom.speed % 1) != 0) throw new Error("Speed must be a round number")
+				modeData.speed = custom.speed
+			} else throw new Error("Speed can't be set for this mode")
+		}
+		 
+		if (!isNaN(+custom.brightness)) {
+			if (modeData.flagList.includes("brightness")) {
+				if (custom.brightness < modeData.brightnessMin || custom.brightness > modeData.brightnessMax) throw new Error("Brightness either to high or to low")
+				if ((custom.brightness % 1) != 0) throw new Error("Brightness must be a round number")
+				modeData.brightness = custom.brightness
+			} else throw new Error("Brightness can't be set for this mode")
+		}
+
+		if (!isNaN(+custom.direction)) {
+			if (modeData.flagList.includes("direction")) {
+				let arr = ["directionLR", "directionUD", "directionHV"]
+				if (modeData.flagList.includes(arr[Math.floor(custom.direction / 2)])) {
+					modeData.direction = custom.direction
+				} else throw new Error("Can't set direction to this value")
+
+				if ((custom.direction % 1) != 0) throw new Error("Direction must be a round number")
+
+			} else throw new Error("Direction can't be set for this mode")
+		}
+		if (custom.colors) {
+			if (modeData.colorMode == 1) {
+				this.updateLeds(deviceId, custom.colors)
+			} else {
+				if (custom.colors.length > modeData.colorMax) throw new Error("Too many colors.")
+				if (modeData.colorLength <= 0) throw new Error("Color can't be set for this mode")
+				modeData.colors = custom.colors
+			}
+		}
+	}
+
+	let pack
+
+	if (this.protocolVersion >= 3) {
+		pack = bufferpack.pack("<12I", [
+			modeData.value, 
+			modeData.flags, 
+			modeData.speedMin, 
+			modeData.speedMax, 
+			modeData.brightnessMin, 
+			modeData.brightnessMax, 
+			modeData.colorMin, 
+			modeData.colorMax, 
+			modeData.speed,
+			modeData.brightness,
+			modeData.direction, 
+			modeData.colorMode
+		])
+	} else {
+		pack = bufferpack.pack("<9I", [
+			modeData.value, 
+			modeData.flags, 
+			modeData.speedMin, 
+			modeData.speedMax, 
+			modeData.colorMin, 
+			modeData.colorMax, 
+			modeData.speed, 
+			modeData.direction, 
+			modeData.colorMode
+		])
+	}
+
+	let data = Buffer.concat([
+		bufferpack.pack("<I", [modeData.id]),
+		this.pack_string(modeData.name),
+		pack,
+		this.pack_list(modeData.colors ? modeData.colors : 0), 
+	])
+	data = Buffer.concat([bufferpack.pack("<I", [data.length, bufferpack.calcLength("<I")]), data])
+
+	this.sendMessage(save ? utils.command.saveMode : utils.command.updateMode, data, deviceId)
+}
+
+function resolve (buffer) {
+	let { deviceId, commandId } = this.decodeHeader(buffer)
+	switch (commandId) {
+		case utils.command.deviceListUpdated: {
+			this.emit("deviceListUpdated")
+			break
+		}
+		default: {
+			if (this.resolver.length) {
+				let index = this.resolver.findIndex( resolver => resolver.deviceId == deviceId && resolver.commandId == commandId)
+				if (index < 0) return
+
+				this.resolver.splice(index, 1)[0].resolve(buffer.slice(16))
+			}
+		}
 	}
 }

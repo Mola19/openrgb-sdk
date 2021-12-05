@@ -1,9 +1,10 @@
-[ general ]
+1.0
+	- typescript
+	- mocha tests (fake openrgb server)
+	- update docs and readme
+	- rename functions, use aliases for old ones
 	- beautify and make code more consistent and readable
-	? move functions to classes e.g. updatemode in device
-	? fix wrong order updateLeds updateMode
-[ functionality ]
-	- add deviceListUpdated
-	- profiles
-[ misc ]
-	- changelog
+	- device class functions with input validation
+		- move functions to classes e.g. updatemode in device
+		- input validation
+		- protocol version checking

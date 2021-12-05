@@ -5,7 +5,7 @@ module.exports = {
 	 * @param {number} g green value
 	 * @param {number} b blue value
 	 */
-	color: function (r, g, b) {
+	color (r, g, b) {
 		return {
 			red: Math.floor(isNaN(+r) ? 0 : +r > 255 ? 255 : +r),
 			green: Math.floor(isNaN(+g) ? 0 : +g > 255 ? 255 : +g),
@@ -16,7 +16,7 @@ module.exports = {
 	 * converts a hex string to an RGB-Object
 	 * @param {string} hex the hex-string, does not have to start with a hashtag
 	 */
-	hexColor: function (hex) {
+	hexColor (hex) {
 		if (/^#/g.test(hex)) hex = hex.slice(1)
 
 		return {
@@ -31,7 +31,7 @@ module.exports = {
 	 * @param {number} s saturation value [0, 1]
 	 * @param {number} l lightness value [0, 1]
 	 */
-	HSLColor:  function (h, s, l) {
+	HSLColor (h, s, l) {
 		let r, g, b
 
 		h = isNaN(+h) ? 0 : h % 360
@@ -64,7 +64,7 @@ module.exports = {
 	 * @param {number} s saturation value [0, 1]
 	 * @param {number} l lightness value [0, 1]
 	 */
-	HSVColor: function (h, s, v) {
+	HSVColor (h, s, v) {
 		let r, g, b
 
 		h = isNaN(+h) ? 0 : h % 360
@@ -94,7 +94,7 @@ module.exports = {
 	/**
 	 * outputs a random color
 	 */
-	randomColor: function () {
+	randomColor () {
 		return {
 			red: Math.floor(Math.random() * 255),
 			green: Math.floor(Math.random() * 255),
@@ -104,7 +104,7 @@ module.exports = {
 	/**
 	 * outputs a random color, that is more colourful than .randomColor()
 	 */
-	randomHColor: function () {
+	randomHColor () {
 		return this.HSVColor(Math.floor(Math.random() * 359), Math.random() * 0.2 + 0.8, Math.random() * 0.5 + 0.5)
 	},
 	command: {
@@ -123,6 +123,7 @@ module.exports = {
 		updateSingleLed: 1052,
 		setCustomMode: 1100,
 		updateMode: 1101,
+		saveMode: 1102
 	},
 	deviceType: {
 		motherboard: 0,
@@ -139,7 +140,8 @@ module.exports = {
 		light: 11,
 		speaker: 12,
 		virtual: 13,
-		unknown: 14
+		storage: 14,
+		unknown: 15
 	},
 	direction: {
 		left: 0,
