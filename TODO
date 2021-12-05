@@ -1,3 +1,6 @@
+[ bugs ]
+	- ECONNRESET error on disconnect
+
 1.0
 	- typescript
 	- mocha tests (fake openrgb server)

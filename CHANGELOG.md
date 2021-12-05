@@ -22,6 +22,7 @@ and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0
 - automatically get protocol version on connect and add it to `client.protocolVersion`
 - new command numbers in utils
 - new device types in utils
+- MIT license
 
 ### changed
 
