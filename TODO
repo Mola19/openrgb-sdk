@@ -2,6 +2,7 @@
 	- ECONNRESET error on disconnect
 
 1.0
+	- github projects
 	- typescript
 	- mocha tests (fake openrgb server)
 	- update docs and readme

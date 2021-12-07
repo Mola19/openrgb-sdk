@@ -13,8 +13,9 @@ module.exports = class Client extends EventEmitter {
 	 * @param {string} name name for the client
 	 * @param {number} port port of the connection
 	 * @param {string} host host of the connection
+	 * @param {object} settings settings for the connection
 	 */
-	constructor (name, port, host) {
+	constructor (name, port, host, settings = {}) {
 		super()
 
 		this.name = name  || "nodejs"
@@ -25,6 +26,8 @@ module.exports = class Client extends EventEmitter {
 
 		this.isConnected = false
 		this.resolver = []
+
+		if (typeof settings == "object") this.settings = settings
 	}
 	/**
 	 * connect to the OpenRGB-SDK-server
@@ -79,8 +82,17 @@ module.exports = class Client extends EventEmitter {
 			this.emit("error", err)
 		})
 
-		let serverProtocolVersion = await this.getProtocolVersion()
-		this.protocolVersion = (serverProtocolVersion < clientProcotolVersion) ? serverProtocolVersion : clientProcotolVersion
+		let serverProtocolVersion = await new Promise(async (resolve, reject) => {
+			setTimeout(() => reject(0), 500)
+			resolve(await this.getProtocolVersion())
+		}).catch(_ => _)
+
+		if (this.settings.forceProtocolVersion && serverProtocolVersion == 0) {
+			this.protocolVersion = this.settings.forceProtocolVersion
+		} else {
+			let clientVersion = ("forceProtocolVersion" in this.settings) ? this.settings.forceProtocolVersion : clientProcotolVersion
+			this.protocolVersion = (serverProtocolVersion < clientVersion) ? serverProtocolVersion : clientVersion
+		}
 		
 		this.setClientName(this.name)
 		this.emit("connect")
@@ -108,7 +120,8 @@ module.exports = class Client extends EventEmitter {
 	 * @returns {Promise<number>}
 	 */
 	async getProtocolVersion () {
-		this.sendMessage(utils.command.requestProtocolVersion, bufferpack.pack("<I", [clientProcotolVersion]))
+		let clientVersion = ("forceProtocolVersion" in this.settings) ? this.settings.forceProtocolVersion : clientProcotolVersion
+		this.sendMessage(utils.command.requestProtocolVersion, bufferpack.pack("<I", [clientVersion]))
 		const buffer = await this.readMessage(utils.command.requestProtocolVersion)
 		return buffer.readUInt32LE()
 	}

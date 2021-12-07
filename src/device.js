@@ -89,11 +89,8 @@ function readModes (buffer, modeCount, offset, protocolVersion) {
 
 		mode.flagList = []
 
-		let flags = ["speed", "directionLR", "directionUD", "directionHV", "brightness", "perLedColor", "modeSpecificColor", "randomColor"]
+		let flags = ["speed", "directionLR", "directionUD", "directionHV", "brightness", "perLedColor", "modeSpecificColor", "randomColor", "manualSave", "automaticSave"]
 
-		if (protocolVersion >= 3) {
-			flags = ["speed", "directionLR", "directionUD", "directionHV", "brightness", "perLedColor", "modeSpecificColor", "randomColor", "manualSave", "automaticSave"]
-		}
 
 		let flagcheck = Math.abs(mode.flags).toString(2)
 		flagcheck = Array(flags.length - flagcheck.length).concat(flagcheck.split("")).reverse()

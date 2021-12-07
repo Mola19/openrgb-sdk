@@ -5,7 +5,7 @@ all notable changes to this project will be documented in this file.
 the format is loosely based on [keep a changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.0] - 2021-12-05
+## [0.5.0] - 2021-12-07
 
 ### added
 
@@ -23,6 +23,8 @@ and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0
 - new command numbers in utils
 - new device types in utils
 - MIT license
+- a settings object as the 4 (optional) argument 
+  - `forceProtocolVersion`
 
 ### changed
 
@@ -35,7 +37,9 @@ and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0
 - ignores now unexpected data from openrgb
 - now working in v17
 - "Invalid array length" bug 
-- protocol version (never have been properly implemented)
+- protocol version (never has been properly implemented)
+- forwards compatibility
+- support for procotol version 0
 
 ### removed
 
