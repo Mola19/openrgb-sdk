@@ -32,18 +32,33 @@ module.exports = class Client extends EventEmitter {
 	/**
 	 * connect to the OpenRGB-SDK-server
 	 */
-	async connect () {
+	async connect (timeout = 1000) {
 		this.socket = new Socket()
+
+		let connectionPromise = Promise.race([
+			new Promise((resolve) => this.socket.once("connect", resolve)),
+			new Promise((resolve) => this.socket.once("error", resolve)),
+			new Promise((resolve) => setTimeout(() => resolve("timeout"), timeout))
+		])
+
 		this.socket.connect(this.port, this.host)
 
-		this.isConnected = true
+		let res = await connectionPromise
 
-		this.socket.once("connect", () => {
-			this.socket.on("close", () => {
-				this.emit("disconnect")
-				this.isConnected = false
-			})
+		if (res == "timeout") throw new Error("timeout")
+
+		if (typeof res == "object") throw new Error(res)
+
+		this.socket.on("close", () => {
+			this.emit("disconnect")
+			this.isConnected = false
 		})
+
+		this.socket.on("error", (err) => { 
+			this.emit("error", err)
+		})
+
+		this.isConnected = true
 
 		this.socketQueue = 0
 
@@ -78,12 +93,8 @@ module.exports = class Client extends EventEmitter {
 			}
 		})
 
-		this.socket.on("error", (err) => { 
-			this.emit("error", err)
-		})
-
 		let serverProtocolVersion = await new Promise(async (resolve, reject) => {
-			setTimeout(() => reject(0), 500)
+			setTimeout(() => reject(0), timeout)
 			resolve(await this.getProtocolVersion())
 		}).catch(_ => _)
 
