@@ -5,6 +5,12 @@ all notable changes to this project will be documented in this file.
 the format is loosely based on [keep a changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2022-02-13
+
+### fixed
+
+- quick fix for esm usage (named exports)
+
 ## [0.5.1] - 2021-12-13
 
 ### fixed

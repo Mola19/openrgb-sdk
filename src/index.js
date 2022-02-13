@@ -1,5 +1,3 @@
-module.exports = {
-	Client: require("./client"),
-	Device: require("./device"),
-	utils: require("./utils")
-}
+exports.Client = require("./client.js")
+exports.Device = require("./device.js")
+exports.utils = require("./utils.js")
