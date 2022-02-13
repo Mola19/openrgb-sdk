@@ -59,10 +59,10 @@ module.exports = {
 		return { red: Math.floor(r * 255), green: Math.floor(g * 255), blue: Math.floor(b * 255) }
 	},
 	/**
-	 * converts HSL values to an RGB-object based on the [wikipedia article](https://en.wikipedia.org/wiki/HSL_and_HSV#HSV_to_RGB)
+	 * converts HSV values to an RGB-object based on the [wikipedia article](https://en.wikipedia.org/wiki/HSL_and_HSV#HSV_to_RGB)
 	 * @param {number} h hue value [0, 359]
 	 * @param {number} s saturation value [0, 1]
-	 * @param {number} l lightness value [0, 1]
+	 * @param {number} v value value [0, 1]
 	 */
 	HSVColor (h, s, v) {
 		let r, g, b
