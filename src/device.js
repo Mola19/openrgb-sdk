@@ -1,5 +1,3 @@
-const bufferpack = require("bufferpack")
-
 module.exports = class Device {
 	constructor (buffer, deviceId, protocolVersion) {
 		this.deviceId = deviceId
@@ -148,13 +146,13 @@ function readZones (buffer, zoneCount, offset) {
 
 		zone.resizable = !(zone.ledsMin == zone.ledsMax)
 
-		let matrixSize = bufferpack.unpack("<H", buffer, offset)[0]
+		let matrixSize = buffer.readUInt16LE(offset)
 		offset+=2
 		if (matrixSize) {
 			zone.matrix = {}
 			zone.matrix.size = matrixSize / 4 - 2
-			zone.matrix.height = bufferpack.unpack("<I", buffer, offset)[0]
-			zone.matrix.width = bufferpack.unpack("<I", buffer, offset + 4)[0]
+			zone.matrix.height = buffer.readUInt32LE(offset)
+			zone.matrix.width = buffer.readUInt32LE(offset + 4)
 
 			offset += 8
 
@@ -162,7 +160,7 @@ function readZones (buffer, zoneCount, offset) {
 			for (let index = 0; index < zone.matrix.height; index++) {
 				zone.matrix.keys[index] = []
 				for (let i = 0; i < zone.matrix.width; i++) {
-					let led = bufferpack.unpack("<I", buffer, offset)[0]
+					let led = buffer.readUInt32LE(offset)
 					zone.matrix.keys[index].push(led != 4294967295 ? led : undefined)
 					offset += 4
 				}
