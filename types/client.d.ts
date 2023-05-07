@@ -42,7 +42,7 @@ declare class Client {
     getControllerData(deviceId: number): Promise<Device>;
     /**
      * get the properties of all devices
-     * @returns {Promise<Device>[]}
+     * @returns {Promise<Promise<Device>[]>}
      */
     getAllControllerData(): Promise<Promise<Device>[]>;
     /**

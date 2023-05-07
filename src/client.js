@@ -148,7 +148,7 @@ module.exports = class Client extends EventEmitter {
 	}
 	/**
 	 * get the properties of all devices
-	 * @returns {Promise<Device>[]}
+	 * @returns {Promise<Promise<Device>[]>}
 	 */
 	async getAllControllerData () {
 		let devices = []
