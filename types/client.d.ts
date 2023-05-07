@@ -44,7 +44,7 @@ declare class Client {
      * get the properties of all devices
      * @returns {Promise<Device>[]}
      */
-    getAllControllerData(): Promise<Device>[];
+    getAllControllerData(): Promise<Promise<Device>[]>;
     /**
      * get a list of all profiles
      * @returns {Promise<String>[]}
