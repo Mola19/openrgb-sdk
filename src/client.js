@@ -152,7 +152,8 @@ module.exports = class Client extends EventEmitter {
 	 */
 	async getAllControllerData () {
 		let devices = []
-		for (let i = 0; i < await this.getControllerCount(); i++) {
+		let controllerCount = await this.getControllerCount()
+		for (let i = 0; i < controllerCount; i++) {
 			devices.push(await this.getControllerData(i))
 		}
 		return devices
