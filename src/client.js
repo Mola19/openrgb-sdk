@@ -148,7 +148,7 @@ module.exports = class Client extends EventEmitter {
 	}
 	/**
 	 * get the properties of all devices
-	 * @returns {Promise<Device>[]}
+	 * @returns {Promise<Device[]>}
 	 */
 	async getAllControllerData () {
 		let devices = []
@@ -160,7 +160,7 @@ module.exports = class Client extends EventEmitter {
 	}
 	/**
 	 * get a list of all profiles
-	 * @returns {Promise<String>[]}
+	 * @returns {Promise<String[]>}
 	 */
 	async getProfileList () {
 		this.sendMessage(utils.command.requestProfileList)
