@@ -42,14 +42,14 @@ declare class Client {
     getControllerData(deviceId: number): Promise<Device>;
     /**
      * get the properties of all devices
-     * @returns {Promise<Promise<Device>[]>}
+     * @returns {Promise<Device[]>}
      */
-    getAllControllerData(): Promise<Promise<Device>[]>;
+    getAllControllerData(): Promise<Device[]>;
     /**
      * get a list of all profiles
-     * @returns {Promise<String>[]}
+     * @returns {Promise<String[]>}
      */
-    getProfileList(): Promise<string>[];
+    getProfileList(): Promise<string[]>;
     /**
      * set the name of the client
      * @param {string} name the name displayed in openrgb
