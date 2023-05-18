@@ -60,34 +60,46 @@ module.exports = class Client extends EventEmitter {
 
 		this.isConnected = true
 
-		this.socketQueue = 0
+		this.currentPacketLength = 0
 
 		this.socket.on("readable", () => {
+			// sometimes several packets only emit one event
+			// loop until there are no more headers
 			while (true) {
-				if (this.socketQueue > 0) {
-					let res = this.socket.read(this.socketQueue)
+				// if the packet couldn't be read the first time (the reason why that could happen is described in the next block),
+				// the packet length will be taken over in to the next `readable call` to then try and read the whole package
+				if (this.currentPacketLength == 0) {
+					let header = this.socket.read(HEADER_SIZE)
+					if (!header) return
+					
+					// check for package magic "ORGB"
+					if (!(header.slice(0, 4).equals(Buffer.from([0x4f, 0x52, 0x47, 0x42])))) return
+
+					this.currentPacketLength = header.readUInt32LE(12)
+
+					if (this.currentPacketLength > 0) {
+						if (this.resolver.length) {
+							this.resolver[0].header = header
+						}
+					} else {
+						// some packets have no body, only header
+						if (this.resolver.length) {
+							resolve.bind(this)(header)
+						}
+					}
+				}
+
+				if (this.currentPacketLength > 0) {
+					// if the packets size is bigger than what the data currently available on the socket res will be null
+					// this means, that the packet has been split in two (or potentially even more chunks)
+					// the code waits for the next `readable` event so the rest of the data is collected
+					let res = this.socket.read(this.currentPacketLength)
 					if (!res) return
 
-					this.socketQueue = 0
+					this.currentPacketLength = 0
 
 					if (this.resolver.length) {
 						resolve.bind(this)(Buffer.concat([this.resolver[0].header, res]))
-					}
-				}
-	
-				let header = this.socket.read(HEADER_SIZE)
-				if (!header) return
-
-				if (!(header.slice(0, 4).equals(Buffer.from([0x4f, 0x52, 0x47, 0x42])))) return
-				if (header.readUInt32LE(12) > 0) {
-					this.socketQueue = header.readUInt32LE(12)
-
-					if (this.resolver.length) {
-						this.resolver[0].header = header
-					}
-				} else {
-					if (this.resolver.length) {
-						resolve.bind(this)(header)
 					}
 				}
 			}
@@ -104,7 +116,7 @@ module.exports = class Client extends EventEmitter {
 			let clientVersion = ("forceProtocolVersion" in this.settings) ? this.settings.forceProtocolVersion : clientProcotolVersion
 			this.protocolVersion = (serverProtocolVersion < clientVersion) ? serverProtocolVersion : clientVersion
 		}
-		
+
 		this.setClientName(this.name)
 		this.emit("connect")
 	}
@@ -394,7 +406,7 @@ async function sendMode (deviceId, mode, custom, save) {
 				modeData.speed = custom.speed
 			} else throw new Error("Speed can't be set for this mode")
 		}
-		 
+
 		if (!isNaN(+custom.brightness)) {
 			if (modeData.flagList.includes("brightness")) {
 				if (custom.brightness < modeData.brightnessMin || custom.brightness > modeData.brightnessMax) throw new Error("Brightness either to high or to low")
