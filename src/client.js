@@ -144,7 +144,11 @@ module.exports = class Client extends EventEmitter {
 	 */
 	async getProtocolVersion () {
 		let clientVersion = ("forceProtocolVersion" in this.settings) ? this.settings.forceProtocolVersion : clientProcotolVersion
-		this.sendMessage(utils.command.requestProtocolVersion, bufferpack.pack("<I", [clientVersion]))
+		
+		const sendBuffer = Buffer.alloc(4)
+		sendBuffer.writeUInt32LE(clientVersion, 0)
+		this.sendMessage(utils.command.requestProtocolVersion, sendBuffer)
+
 		const buffer = await this.readMessage(utils.command.requestProtocolVersion)
 		return buffer.readUInt32LE()
 	}
@@ -154,7 +158,10 @@ module.exports = class Client extends EventEmitter {
 	 * @returns {Promise<Device>}
 	 */
 	async getControllerData (deviceId) { 
-		this.sendMessage(utils.command.requestControllerData, bufferpack.pack("<I", [this.protocolVersion]), deviceId)
+		const sendBuffer = Buffer.alloc(4)
+		sendBuffer.writeUInt32LE(this.protocolVersion, 0)
+		this.sendMessage(utils.command.requestControllerData, sendBuffer, deviceId)
+
 		const buffer = await this.readMessage(utils.command.requestControllerData, deviceId)
 		return new Device(buffer, deviceId, this.protocolVersion)
 	}
@@ -183,7 +190,7 @@ module.exports = class Client extends EventEmitter {
 		for (let i = 0; i < count; i++) {
 			let length = buffer.readUInt16LE(offset)
 			offset += 2
-			profiles.push(bufferpack.unpack(`<${length-1}c`, buffer, offset).join(""))
+			profiles.push(buffer.toString('ascii', offset, offset + length - 1))
 			offset += length
 		}
 		return profiles
@@ -250,7 +257,11 @@ module.exports = class Client extends EventEmitter {
 	 * @param {Object} colors the color the led should be set to
 	 */
 	updateSingleLed (deviceId, ledId, color) {
-		let buff = Buffer.concat([bufferpack.pack("<I", [ledId]), bufferpack.pack("<BBB", [color.red, color.green, color.blue]), new Buffer.alloc(1)])
+		const buff = Buffer.alloc(8)
+		buff.writeUInt32LE(ledId, 0)
+		buff.writeUInt8(color.red, 4)
+		buff.writeUInt8(color.green, 5)
+		buff.writeUInt8(color.blue, 6)
 		this.sendMessage(utils.command.updateSingleLed, buff, deviceId)
 	}
 	/**
@@ -286,7 +297,10 @@ module.exports = class Client extends EventEmitter {
 	 * @param {number} zoneLength the length the zone should be set to
 	 */
 	resizeZone (deviceId, zoneId, zoneLength) {
-		this.sendMessage(utils.command.resizeZone, bufferpack.pack("<ii", [zoneId, zoneLength]), deviceId)
+		const buff = Buffer.alloc(8)
+		buff.writeInt32LE(zoneId, 0)
+		buff.writeInt32LE(zoneLength, 4)
+		this.sendMessage(utils.command.resizeZone, buff, deviceId)
 	}
 	/**
 	 * create a new profile with the current state of the devices in openrgb
@@ -357,9 +371,13 @@ module.exports = class Client extends EventEmitter {
 	 * @private
 	 */
 	pack_list (arr) {
-		let out = bufferpack.pack("<H", [arr.length])
-		arr.forEach(element => {
-			out = Buffer.concat([out, new Buffer.from(""), bufferpack.pack("<BBBx", [element.red, element.green, element.blue])])
+		const out = Buffer.alloc(2 + arr.length*4)
+		out.writeUInt16LE(arr.length)
+		arr.forEach((element, i) => {
+			const offset = 2 + i * 4
+			out.writeUInt8(element.red, offset)
+			out.writeUInt8(element.green, offset + 1)
+			out.writeUInt8(element.blue, offset + 2)
 		})
 		return out
 	}
@@ -367,7 +385,11 @@ module.exports = class Client extends EventEmitter {
 	 * @private
 	 */
 	pack_string (string) {
-		return Buffer.concat([bufferpack.pack(`<H${string.length}s`, [string.length + 1, string]), Buffer.from('\x00')])
+		const out = Buffer.alloc(2 + string.length + 1)
+		out.writeUInt16LE(string.length+1)
+		out.write(string, 'ascii', 2)
+		out.write(0, out.length-1)
+		return out
 	}
 }
 
@@ -440,41 +462,49 @@ async function sendMode (deviceId, mode, custom, save) {
 	let pack
 
 	if (this.protocolVersion >= 3) {
-		pack = bufferpack.pack("<12I", [
-			modeData.value, 
-			modeData.flags, 
-			modeData.speedMin, 
-			modeData.speedMax, 
-			modeData.brightnessMin, 
-			modeData.brightnessMax, 
-			modeData.colorMin, 
-			modeData.colorMax, 
-			modeData.speed,
-			modeData.brightness,
-			modeData.direction, 
-			modeData.colorMode
-		])
+		pack = Buffer.alloc(12 * 4)
+		pack.writeUInt32LE(modeData.value, 0 * 4)
+		pack.writeUInt32LE(modeData.flags, 1 * 4)
+		pack.writeUInt32LE(modeData.speedMin, 2 * 4)
+		pack.writeUInt32LE(modeData.speedMax, 3 * 4)
+		pack.writeUInt32LE(modeData.brightnessMin, 4 * 4)
+		pack.writeUInt32LE(modeData.brightnessMax, 5 * 4)
+		pack.writeUInt32LE(modeData.colorMin, 6 * 4)
+		pack.writeUInt32LE(modeData.colorMax, 7 * 4)
+		pack.writeUInt32LE(modeData.speed, 8 * 4)
+		pack.writeUInt32LE(modeData.brightness, 9 * 4)
+		pack.writeUInt32LE(modeData.direction, 10 * 4)
+		pack.writeUInt32LE(modeData.colorMode, 11 * 4)
 	} else {
-		pack = bufferpack.pack("<9I", [
-			modeData.value, 
-			modeData.flags, 
-			modeData.speedMin, 
-			modeData.speedMax, 
-			modeData.colorMin, 
-			modeData.colorMax, 
-			modeData.speed, 
-			modeData.direction, 
-			modeData.colorMode
-		])
+		pack = Buffer.alloc(9 * 4)
+		pack.writeUInt32LE(modeData.value, 0 * 4)
+		pack.writeUInt32LE(modeData.flags, 1 * 4)
+		pack.writeUInt32LE(modeData.speedMin, 2 * 4)
+		pack.writeUInt32LE(modeData.speedMax, 3 * 4)
+		pack.writeUInt32LE(modeData.colorMin, 4 * 4)
+		pack.writeUInt32LE(modeData.colorMax, 5 * 4)
+		pack.writeUInt32LE(modeData.speed, 6 * 4)
+		pack.writeUInt32LE(modeData.direction, 7 * 4)
+		pack.writeUInt32LE(modeData.colorMode, 8 * 4)
 	}
 
+	const idBuffer = Buffer.alloc(4)
+	idBuffer.writeUInt32LE(modeData.id)
+
+
 	let data = Buffer.concat([
-		bufferpack.pack("<I", [modeData.id]),
+		idBuffer,
 		this.pack_string(modeData.name),
 		pack,
 		this.pack_list(modeData.colors ? modeData.colors : 0), 
 	])
-	data = Buffer.concat([bufferpack.pack("<I", [data.length, bufferpack.calcLength("<I")]), data])
+	// const dataWrapped = Buffer.alloc()
+	data = Buffer.concat([
+		bufferpack.pack("<I", [
+			data.length, 
+			bufferpack.calcLength("<I")
+		]),
+		 data])
 
 	this.sendMessage(save ? utils.command.saveMode : utils.command.updateMode, data, deviceId)
 }
