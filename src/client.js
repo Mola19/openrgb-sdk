@@ -6,7 +6,7 @@ const utils = require("./utils.js")
 const Device = require("./device.js")
 
 const HEADER_SIZE = 16
-const clientProcotolVersion = 3
+const clientProcotolVersion = 4
 
 module.exports = class Client extends EventEmitter {
 	/**

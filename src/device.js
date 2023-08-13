@@ -27,11 +27,12 @@ module.exports = class Device {
 		const { modes, offset: readModesOffset } = readModes(buffer, modeCount, offset, protocolVersion)
 		this.modes = modes
 		offset = readModesOffset
+
 		const zoneCount = buffer.readUInt16LE(offset)
 		offset += 2
-		const { zones, offset: readZonesOffset } = readZones(buffer, zoneCount, offset)
+		const { zones, offset: readZonesOffset } = readZones(buffer, zoneCount, offset, protocolVersion)
 		this.zones = zones
-		offset = readZonesOffset
+		offset = readZonesOffset		
 
 		const ledCount = buffer.readUInt16LE(offset)
 		offset += 2
@@ -134,7 +135,7 @@ function readModes (buffer, modeCount, offset, protocolVersion) {
 	return { modes, offset }
 }
 
-function readZones (buffer, zoneCount, offset) {
+function readZones (buffer, zoneCount, offset, protocolVersion) {
 	const zones = []
 	for (let zoneIndex = 0; zoneIndex < zoneCount; zoneIndex++) {
 		const { text, length } = readString(buffer, offset)
@@ -168,6 +169,25 @@ function readZones (buffer, zoneCount, offset) {
 				}
 			}
 		}
+
+		if (protocolVersion >= 4) {
+			zone.segments = []
+			const segmentCount = buffer.readUInt16LE(offset)
+			offset += 2
+			for (let i = 0; i < segmentCount; i++) {
+				let name = readString(buffer, offset)
+				offset += name.length
+				zone.segments.push(segment = {
+					name: name.text,
+					type: buffer.readInt32LE(offset),
+					start: buffer.readInt32LE(offset + 4),
+					length: buffer.readInt32LE(offset + 8),
+				})
+				offset += 12
+				
+			}
+		}
+
 		zones.push(zone)
 	}
 	return { zones, offset }
