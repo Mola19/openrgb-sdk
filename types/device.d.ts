@@ -46,7 +46,7 @@ declare class Device {
     }[];
     leds: {
         name: string;
-        value: RGBColor;
+        value: number;
     }[];
     colors: RGBColor[];
 }

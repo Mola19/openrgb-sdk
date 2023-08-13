@@ -41,11 +41,11 @@ module.exports = class Device {
 		for (let ledIndex = 0; ledIndex < ledCount; ledIndex++) {
 			const { text, length } = readString(buffer, offset)
 			offset += length
-			const color = readColor(buffer, offset)
+			const value = buffer.readUInt32LE(offset)
 			offset += 4
 			this.leds.push({
 				name: text,
-				value: color
+				value
 			})
 		}
 
