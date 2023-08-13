@@ -1,7 +1,5 @@
 /node_modules
 .npmignore
-index.js
-test.js
 /test
 .vsls.json
 package-lock.json

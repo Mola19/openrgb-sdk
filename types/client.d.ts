@@ -6,10 +6,10 @@ declare class Client {
      * @param {string} host host of the connection
      * @param {object} settings settings for the connection
      */
-    constructor(name: string, port: number, host: string, settings?: object);
-    name: string;
-    port: number;
-    host: string;
+    constructor(name: string, port: number, host: string, settings?: {forceProtocolVersion: number; });
+    name?: string;
+    port?: number;
+    host?: string;
     isConnected: boolean;
     resolver: any[];
     settings: any;
@@ -19,7 +19,7 @@ declare class Client {
     connect(timeout?: number): Promise<void>;
     socket: any;
     socketQueue: any;
-    protocolVersion: any;
+    protocolVersion: number;
     /**
      * disconnect from the OpenRGB-SDK-server
      */
