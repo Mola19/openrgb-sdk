@@ -5,7 +5,7 @@ module.exports = class Device {
 		this.deviceId = deviceId
 
 		let offset = 4
-		this.type = buffer.readUInt32LE(offset)
+		this.type = buffer.readInt32LE(offset)
 		offset += 4;
 
 		let arr = ["name", "description", "version", "serial", "location"]
@@ -22,7 +22,7 @@ module.exports = class Device {
 
 		const modeCount = buffer.readUInt16LE(offset)
 		offset += 2
-		this.activeMode = buffer.readUInt32LE(offset)
+		this.activeMode = buffer.readInt32LE(offset)
 		offset += 4
 		const { modes, offset: readModesOffset } = readModes(buffer, modeCount, offset, protocolVersion)
 		this.modes = modes
@@ -72,14 +72,17 @@ function readModes (buffer, modeCount, offset, protocolVersion) {
 
 		offset += modeNameLength
 
-		let arr = ["value", "flags", "speedMin", "speedMax", "colorMin", "colorMax", "speed", "direction", "colorMode"]
+		mode.value = buffer.readInt32LE(offset)
+		offset += 4
+
+		let arr = ["flags", "speedMin", "speedMax", "colorMin", "colorMax", "speed", "direction", "colorMode"]
 
 		if (protocolVersion >= 3) {
-			arr = ["value", "flags", "speedMin", "speedMax", "brightnessMin", "brightnessMax", "colorMin", "colorMax", "speed", "brightness", "direction", "colorMode"]
+			arr = ["flags", "speedMin", "speedMax", "brightnessMin", "brightnessMax", "colorMin", "colorMax", "speed", "brightness", "direction", "colorMode"]
 		}
 
 		arr.forEach(value => {
-			mode[value] = buffer.readInt32LE(offset)
+			mode[value] = buffer.readUInt32LE(offset)
 			offset += 4
 		})
 
@@ -140,10 +143,13 @@ function readZones (buffer, zoneCount, offset, protocolVersion) {
 	for (let zoneIndex = 0; zoneIndex < zoneCount; zoneIndex++) {
 		const { text, length } = readString(buffer, offset)
 		let zone = { name: text, id: zoneIndex }
-		offset += length;
+		offset += length
 
-		["type", "ledsMin", "ledsMax", "ledsCount"].forEach(value => {
-			zone[value] = buffer.readInt32LE(offset)
+		zone.type = buffer.readInt32LE(offset)
+		offset += 4
+
+		;["ledsMin", "ledsMax", "ledsCount"].forEach(value => {
+			zone[value] = buffer.readUInt32LE(offset)
 			offset += 4
 		})
 
@@ -180,11 +186,10 @@ function readZones (buffer, zoneCount, offset, protocolVersion) {
 				zone.segments.push(segment = {
 					name: name.text,
 					type: buffer.readInt32LE(offset),
-					start: buffer.readInt32LE(offset + 4),
-					length: buffer.readInt32LE(offset + 8),
+					start: buffer.readUInt32LE(offset + 4),
+					length: buffer.readUInt32LE(offset + 8),
 				})
-				offset += 12
-				
+				offset += 12	
 			}
 		}
 
