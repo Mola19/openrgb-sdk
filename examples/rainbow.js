@@ -1,4 +1,4 @@
-const { Client } = require("../src/index.js"); // for your usecase use require("openrgb-sdk")
+const { Client } = require(".."); // for your usecase use require("openrgb-sdk")
 const ms = 100;
 
 async function rainbow () {

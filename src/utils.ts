@@ -5,7 +5,7 @@ module.exports = {
 	 * @param {number} g green value
 	 * @param {number} b blue value
 	 */
-	color (r, g, b) {
+	color (r: number, g: number, b: number): RGBColor {
 		return {
 			red: Math.floor(isNaN(+r) ? 0 : +r > 255 ? 255 : +r),
 			green: Math.floor(isNaN(+g) ? 0 : +g > 255 ? 255 : +g),
@@ -16,7 +16,7 @@ module.exports = {
 	 * converts a hex string to an RGB-Object
 	 * @param {string} hex the hex-string, does not have to start with a hashtag
 	 */
-	hexColor (hex) {
+	hexColor (hex: string): RGBColor {
 		if (/^#/g.test(hex)) hex = hex.slice(1)
 
 		return {
@@ -31,7 +31,7 @@ module.exports = {
 	 * @param {number} s saturation value [0, 1]
 	 * @param {number} l lightness value [0, 1]
 	 */
-	HSLColor (h, s, l) {
+	HSLColor (h: number, s: number, l: number): RGBColor {
 		let r, g, b
 
 		h = isNaN(+h) ? 0 : h % 360
@@ -39,7 +39,7 @@ module.exports = {
 		l = isNaN(+l) ? 0 : +l > 1 ? 1 : +l
 
 		if (s != 0) {
-			function h2rgb (p, q, t) {
+			function h2rgb (p: number, q: number, t: number): number {
 				if ( t < 0 ) t += 1
 				if ( t > 1 ) t -= 1
 				if ( t < 1/6 ) return p + (q - p) * 6 * t
@@ -64,7 +64,7 @@ module.exports = {
 	 * @param {number} s saturation value [0, 1]
 	 * @param {number} v value value [0, 1]
 	 */
-	HSVColor (h, s, v) {
+	HSVColor (h: number, s: number, v: number): RGBColor {
 		let r, g, b
 
 		h = isNaN(+h) ? 0 : h % 360
@@ -94,7 +94,7 @@ module.exports = {
 	/**
 	 * outputs a random color
 	 */
-	randomColor () {
+	randomColor (): RGBColor {
 		return {
 			red: Math.floor(Math.random() * 255),
 			green: Math.floor(Math.random() * 255),
@@ -104,7 +104,7 @@ module.exports = {
 	/**
 	 * outputs a random color, that is more colourful than .randomColor()
 	 */
-	randomHColor () {
+	randomHColor (): RGBColor {
 		return this.HSVColor(Math.floor(Math.random() * 359), Math.random() * 0.2 + 0.8, Math.random() * 0.5 + 0.5)
 	},
 	command: {

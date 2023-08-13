@@ -1,24 +1,101 @@
-const bufferpack = require("bufferpack")
+interface RGBColor {
+    red: number
+    green: number
+    blue: number
+}
 
-module.exports = class Device {
-	constructor (buffer, deviceId, protocolVersion) {
+interface Mode {
+	id: number
+	name: string
+	value: number
+	flags: number
+	speedMin: number
+	speedMax: number
+	brightnessMin?: number
+	brightnessMax?: number
+	colorMin: number
+	colorMax: number
+	speed: number
+	brightness?: number
+	direction: number
+	colorMode: number
+	colors: RGBColor[]
+	flagList: string[]
+}
+
+interface Segment {
+	name: string
+	type: number
+	start: number
+	length: number
+}
+
+interface Matrix {
+	size: number
+	height: number
+	width: number
+	keys: (number|undefined)[][]
+}
+
+interface Zone {
+	name: string
+	id: number
+	type: number
+	ledsMin: number
+	ledsMax: number
+	ledsCount: number
+	resizable: boolean
+	matrix?: Matrix
+	segments?: Segment[]
+}
+
+exports.Device = class Device {
+	deviceId: number
+    type: number
+    name: string
+    vendor?: string
+    description: string
+    version: string
+    serial: string
+    location: string
+    activeMode: number
+    modes: Mode[]
+    zones: Zone[]
+    leds: {
+        name: string
+        value: number
+    }[]
+    colors: RGBColor[]
+	constructor (buffer: Buffer, deviceId: number, protocolVersion: number) {
 		this.deviceId = deviceId
 
 		let offset = 4
 		this.type = buffer.readInt32LE(offset)
 		offset += 4;
 
-		let arr = ["name", "description", "version", "serial", "location"]
+		let { text: nameText, length: nameLength } = readString(buffer, offset)
+		offset += nameLength
 
 		if (protocolVersion >= 1) {
-			arr = ["name", "vendor", "description", "version", "serial", "location"]
+			let { text: vendorText, length: vendorLength } = readString(buffer, offset)
+			offset += vendorLength
+			this.vendor = vendorText
 		}
 
-		arr.forEach(value => {
-			let { text, length } = readString(buffer, offset)
-			this[value] = text
-			offset += length
-		})
+		let { text: descriptionText, length: descriptionLength } = readString(buffer, offset)
+		offset += descriptionLength
+		let { text: versionText, length: versionLength } = readString(buffer, offset)
+		offset += versionLength
+		let { text: serialText, length: serialLength } = readString(buffer, offset)
+		offset += serialLength
+		let { text: locationText, length: locationLength } = readString(buffer, offset)
+		offset += locationLength
+
+		this.name = nameText
+		this.description = descriptionText
+		this.version = versionText
+		this.serial = serialText
+		this.location = locationText
 
 		const modeCount = buffer.readUInt16LE(offset)
 		offset += 2
@@ -60,130 +137,167 @@ module.exports = class Device {
 	}
 }
 
-function readModes (buffer, modeCount, offset, protocolVersion) {
-	const modes = []
+function readModes (buffer: Buffer, modeCount: number, offset: number, protocolVersion: number) {
+	const modes: Mode[] = []
 	for (let modeIndex = 0; modeIndex < modeCount; modeIndex++) {
-		let mode = {}
-
-		mode.id = modeIndex
 
 		let { text: modeName, length: modeNameLength } = readString(buffer, offset)
-		mode.name = modeName
-
 		offset += modeNameLength
 
-		mode.value = buffer.readInt32LE(offset)
+		let modeValue = buffer.readInt32LE(offset)
 		offset += 4
 
-		let arr = ["flags", "speedMin", "speedMax", "colorMin", "colorMax", "speed", "direction", "colorMode"]
+		let modeFlags 	= buffer.readUInt32LE(offset)
+		let speedMin 	= buffer.readUInt32LE(offset + 4)
+		let speedMax 	= buffer.readUInt32LE(offset + 8)
 
+		let brightnessMin
+		let brightnessMax
 		if (protocolVersion >= 3) {
-			arr = ["flags", "speedMin", "speedMax", "brightnessMin", "brightnessMax", "colorMin", "colorMax", "speed", "brightness", "direction", "colorMode"]
+			brightnessMin = buffer.readUInt32LE(offset + 12)
+			brightnessMax = buffer.readUInt32LE(offset + 16)
+			offset += 8
 		}
 
-		arr.forEach(value => {
-			mode[value] = buffer.readUInt32LE(offset)
-			offset += 4
-		})
+		let colorMin 	= buffer.readUInt32LE(offset + 12)
+		let colorMax 	= buffer.readUInt32LE(offset + 16)
+		let speed 		= buffer.readUInt32LE(offset + 20)
 
-		mode.colorLength = buffer.readUInt16LE(offset)
+		let brightness
+		if (protocolVersion >= 3) {
+			brightness = buffer.readUInt32LE(offset + 24)
+			offset += 4
+		}
+
+		let direction 	= buffer.readUInt32LE(offset + 24)
+		let colorMode 	= buffer.readUInt32LE(offset + 28)
+
+		offset += 32
+
+		let colorLength = buffer.readUInt16LE(offset)
 		offset += 2
 
-		mode.colors = []
+		let colors: RGBColor[] = []
 
-		mode.flagList = []
+		let flagList: string[] = []
 
-		let flags = ["speed", "directionLR", "directionUD", "directionHV", "brightness", "perLedColor", "modeSpecificColor", "randomColor", "manualSave", "automaticSave"]
+		const flags = ["speed", "directionLR", "directionUD", "directionHV", "brightness", "perLedColor", "modeSpecificColor", "randomColor", "manualSave", "automaticSave"]
 
-
-		let flagcheck = Math.abs(mode.flags).toString(2)
-		flagcheck = Array(flags.length - flagcheck.length).concat(flagcheck.split("")).reverse()
+		let flagcheck_str: string = modeFlags.toString(2)
+		let flagcheck: string[] = Array(flags.length - flagcheck_str.length).concat(flagcheck_str.split("")).reverse()
 
 		flagcheck.forEach((el, i) => {
-			if (el == "1") mode.flagList.push(flags[i])
+			if (el == "1") flagList.push(flags[i] as string)
 		})
 
-		if (+flagcheck[1] || +flagcheck[2] || +flagcheck[3]) {
-			mode.flagList.push("direction")
+		if (Number(flagcheck[1]) || Number(flagcheck[2]) || Number(flagcheck[3])) {
+			flagList.push("direction")
 		}
 
-		if (!+flagcheck[0]) {
-			mode.speedMin = 0
-			mode.speedMax = 0
-			mode.speed = 0
+		if (!Number(flagcheck[0])) {
+			speedMin = 0
+			speedMax = 0
+			speed = 0
 		}
 
-		if (protocolVersion >= 3 && !+flagcheck[4]) {
-			mode.brightnessMin = 0
-			mode.brightnessMax = 0
-			mode.brightness = 0
+		if (protocolVersion >= 3 && !Number(flagcheck[4])) {
+			brightnessMin = 0
+			brightnessMax = 0
+			brightness = 0
 		}
 
-		if (!+flagcheck[1] && !+flagcheck[2] && !+flagcheck[3]) {
-			mode.direction = 0
+		if (!Number(flagcheck[1]) && !Number(flagcheck[2]) && !Number(flagcheck[3])) {
+			direction = 0
 		}
 
-		if ((!+flagcheck[5] && !+flagcheck[6] && !+flagcheck[7]) || !mode.colorLength) {
-			mode.colorLength = 0
-			mode.colorMin = 0
-			mode.colorMax = 0
+		if ((!Number(flagcheck[5]) && !Number(flagcheck[6]) && !Number(flagcheck[7])) || !colorLength) {
+			colorLength = 0
+			colorMin = 0
+			colorMax = 0
 		}
 
-		for (let colorIndex = 0; colorIndex < mode.colorLength; colorIndex++) {
-			mode.colors.push(readColor(buffer, offset));
+		for (let colorIndex = 0; colorIndex < colorLength; colorIndex++) {
+			colors.push(readColor(buffer, offset));
 			offset += 4;
 		}
+
+		let mode: Mode = {
+			id: modeIndex,
+			name: modeName,
+			value: modeValue,
+			flags: modeFlags,
+			speedMin,
+			speedMax,
+			colorMin,
+			colorMax,
+			speed,
+			direction,
+			colorMode,
+			colors,
+			flagList
+		}
+
+		if (protocolVersion >= 3) {
+			mode.brightnessMin = brightnessMin
+			mode.brightnessMax = brightnessMax
+			mode.brightness = brightness
+		}
+
 		modes.push(mode)
 	}
 	return { modes, offset }
 }
 
-function readZones (buffer, zoneCount, offset, protocolVersion) {
-	const zones = []
+function readZones (buffer: Buffer, zoneCount: number, offset: number, protocolVersion: number) {
+	const zones: Zone[] = []
 	for (let zoneIndex = 0; zoneIndex < zoneCount; zoneIndex++) {
-		const { text, length } = readString(buffer, offset)
-		let zone = { name: text, id: zoneIndex }
-		offset += length
+		const { text: zoneName, length: zoneNameLength } = readString(buffer, offset)
+		offset += zoneNameLength
 
-		zone.type = buffer.readInt32LE(offset)
+		const zoneType = buffer.readInt32LE(offset)
 		offset += 4
 
-		;["ledsMin", "ledsMax", "ledsCount"].forEach(value => {
-			zone[value] = buffer.readUInt32LE(offset)
-			offset += 4
-		})
+		const ledsMin   = buffer.readUInt32LE(offset)
+		const ledsMax   = buffer.readUInt32LE(offset + 4)
+		const ledsCount = buffer.readUInt32LE(offset + 8)
 
-		zone.resizable = !(zone.ledsMin == zone.ledsMax)
+		offset += 12
 
-		let matrixSize = bufferpack.unpack("<H", buffer, offset)[0]
+		const resizable = !(ledsMin == ledsMax)
+
+		let matrixSize = buffer.readUInt16LE(offset)
 		offset+=2
+		let matrix: Matrix|undefined
 		if (matrixSize) {
-			zone.matrix = {}
-			zone.matrix.size = matrixSize / 4 - 2
-			zone.matrix.height = bufferpack.unpack("<I", buffer, offset)[0]
-			zone.matrix.width = bufferpack.unpack("<I", buffer, offset + 4)[0]
+			matrix = {
+				size: matrixSize / 4 - 2,
+				height: buffer.readUInt32LE(offset),
+				width: buffer.readUInt32LE(offset + 4),
+				keys: []
+			}
 
 			offset += 8
 
-			zone.matrix.keys = []
-			for (let index = 0; index < zone.matrix.height; index++) {
-				zone.matrix.keys[index] = []
-				for (let i = 0; i < zone.matrix.width; i++) {
-					let led = bufferpack.unpack("<I", buffer, offset)[0]
-					zone.matrix.keys[index].push(led != 4294967295 ? led : undefined)
+			matrix.keys = []
+			for (let index = 0; index < matrix.height; index++) {
+				matrix.keys[index] = []
+				for (let i = 0; i < matrix.width; i++) {
+					let led = buffer.readUInt32LE(offset)
+					matrix.keys[index]!.push(led != 0xFFFFFFFF ? led : undefined)
 					offset += 4
 				}
 			}
 		}
 
+		let segments: Segment[]|undefined
 		if (protocolVersion >= 4) {
-			zone.segments = []
+			segments = []
 			const segmentCount = buffer.readUInt16LE(offset)
 			offset += 2
 			for (let i = 0; i < segmentCount; i++) {
 				let name = readString(buffer, offset)
 				offset += name.length
-				zone.segments.push(segment = {
+				segments.push({
 					name: name.text,
 					type: buffer.readInt32LE(offset),
 					start: buffer.readUInt32LE(offset + 4),
@@ -193,20 +307,32 @@ function readZones (buffer, zoneCount, offset, protocolVersion) {
 			}
 		}
 
+		let zone: Zone = {
+			name: zoneName,
+			id: zoneIndex,
+			type: zoneType,
+			ledsMin,
+			ledsMax,
+			ledsCount,
+			resizable,
+			matrix,
+			segments
+		}
+
 		zones.push(zone)
 	}
 	return { zones, offset }
 }
 
-function readString (buffer, offset) {
-	const length = buffer.readUInt16LE(offset)
-	const text = new TextDecoder().decode(buffer.slice(offset + 2, offset + length + 1))
+function readString (buffer: Buffer, offset: number) {
+	const length: number = buffer.readUInt16LE(offset)
+	const text: string = new TextDecoder().decode(buffer.slice(offset + 2, offset + length + 1))
 	return { text, length: length + 2 }
 }
 
-function readColor (buffer, offset) {
-	const red = buffer.readUInt8(offset++)
-	const green = buffer.readUInt8(offset++)
-	const blue = buffer.readUInt8(offset++)
+function readColor (buffer: Buffer, offset: number) {
+	const red: number = buffer.readUInt8(offset++)
+	const green: number = buffer.readUInt8(offset++)
+	const blue: number = buffer.readUInt8(offset++)
 	return { red, green, blue }
 }

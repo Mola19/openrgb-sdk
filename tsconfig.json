@@ -21,7 +21,7 @@
 		"useUnknownInCatchVariables": true,
 
 		/* - modules - */
-		"module": "esnext",
+		"module": "CommonJS",
 		"moduleResolution": "nodenext",
 		"rootDir": "src",
 

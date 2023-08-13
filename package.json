@@ -5,7 +5,7 @@
 	"homepage": "https://docs.m4rch.xyz/openrgb",
 	"author": "mola19",
 	"license": "MIT",
-	"main": "src/index.js",
+	"main": "dist/index.js",
 	"keywords": [
 		"lighting control",
 		"openrgb",
@@ -19,7 +19,7 @@
 		"build": "tsc -b",
 		"dev": "tsc -b -w",
 		"prepare": "npm run build",
-		"rainbow": "node examples/rainbow"
+		"rainbow": "node examples/rainbow_advanced"
 	},
 	"dependencies": {
 		"bufferpack": "0.0.6"

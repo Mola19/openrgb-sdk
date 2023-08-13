@@ -1,6 +1,6 @@
 // this is an example of an advanced mode, meaning it is easier for the computer to calculate
 
-const { Client } = require("../src/index.js"); // for your usecase use require("openrgb-sdk")
+const { Client } = require(".."); // for your usecase use require("openrgb-sdk")
 const ms = 100;
 
 async function rainbow_advanced () {
@@ -17,7 +17,8 @@ async function rainbow_advanced () {
 		let device = await client.getControllerData(deviceId)
 		// filter out devices, that don't have a direct mode and set remaining to direct
 		if (device.modes.filter(el => el.name == "Direct")[0]) {
-			await client.updateMode(deviceId, "Direct")
+			let mode = {name: "Direct"}
+			await client.updateMode(deviceId, mode)
 			deviceList[deviceId] = device
 		}
 	}

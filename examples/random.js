@@ -1,4 +1,4 @@
-const { Client, utils } = require("../src/index.js"); // for your usecase use require("openrgb-sdk")
+const { Client, utils } = require(".."); // for your usecase use require("openrgb-sdk")
 const ms = 200;
 
 async function random () {
