@@ -2,29 +2,33 @@
 	"name": "openrgb-sdk",
 	"version": "0.5.2",
 	"description": "An SDK client for the RGB Software OpenRGB",
+	"homepage": "https://docs.m4rch.xyz/openrgb",
+	"author": "mola19",
+	"license": "MIT",
+	"main": "src/index.js",
 	"keywords": [
 		"lighting control",
 		"openrgb",
 		"rgb"
 	],
-	"homepage": "https://docs.m4rch.xyz/openrgb",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/mola19/openrgb-sdk"
 	},
-	"license": "MIT",
-	"author": "mola19",
-	"main": "src/index.js",
-	"types": "./types/index.js",
 	"scripts": {
+		"build": "tsc -b",
+		"dev": "tsc -b -w",
+		"prepare": "npm run build",
 		"rainbow": "node examples/rainbow"
 	},
 	"dependencies": {
 		"bufferpack": "0.0.6"
 	},
 	"devDependencies": {
-		"@types/node": "^20.2.0"
+		"@types/node": "^20.4.10",
+		"typescript": "^5.1.6"
 	},
+	"types": "./types/index.js",
 	"engines": {
 		"node": ">=8.3"
 	}

@@ -1,22 +1,46 @@
 {
-	// Change this to match your project
-	"include": ["src/*"],
 	"compilerOptions": {
-		"target": "esnext",
-		// Tells TypeScript to read JS files, as
-		// normally they are ignored as source files
-		"allowJs": true,
-		// Generate d.ts files
+		/* - type checking - */
+		"allowUnreachableCode": false,
+		"allowUnusedLabels": false,
+		"alwaysStrict": true,
+		// "exactOptionalPropertyTypes": true,
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitAny": true,
+		"noImplicitOverride": true,
+		"noImplicitReturns": true,
+		"noImplicitThis": true,
+		"noUncheckedIndexedAccess": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"strict": true,
+		"strictBindCallApply": true,
+		"strictFunctionTypes": true,
+		"strictNullChecks": true,
+		"strictPropertyInitialization": true,
+		"useUnknownInCatchVariables": true,
+
+		/* - modules - */
+		"module": "esnext",
+		"moduleResolution": "nodenext",
+		"rootDir": "src",
+
+		/* - emit - */
 		"declaration": true,
-		// This compiler run should
-		// only output d.ts files
-		"emitDeclarationOnly": true,
-		// Types should go into this directory.
-		// Removing this would place the .d.ts files
-		// next to the .js files
+		"declarationMap": true,
 		"outDir": "dist",
-		// go to js file when using IDE functions like
-		// "Go to Definition" in VSCode
-		"declarationMap": true
-	}
+		"stripInternal": true,
+
+		/* - interop - */
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+
+		/* - lang & env - */
+		"lib": [ "esnext" ],
+		"target": "esnext",
+
+		/* - completeness - */
+		"skipLibCheck": true,
+	},
+	"include": [ "src/**/*.ts" ]
 }
