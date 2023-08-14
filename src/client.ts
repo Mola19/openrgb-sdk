@@ -5,7 +5,7 @@ import { Socket } from "net"
 // @ts-expect-error
 import bufferpack from "bufferpack"
 
-import utils from "./utils.js"
+import * as utils from "./utils.js"
 
 import Device from "./device"
 import type { RGBColor, Mode } from "./device"
