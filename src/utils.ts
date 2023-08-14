@@ -1,4 +1,6 @@
-module.exports = {
+import type { RGBColor } from "./device"
+
+export default {
 	/**
 	 * converts RGB values to an RGB-object
 	 * @param {number} r red value 

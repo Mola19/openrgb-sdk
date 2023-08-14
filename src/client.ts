@@ -1,9 +1,14 @@
-const EventEmitter = require("events")
-const { Socket } = require("net")
-const bufferpack = require("bufferpack")
+import EventEmitter from "events"
+import { Socket } from "net"
 
-const utils = require("./utils.js")
-const { Device, RGBColor, Mode, Segment, Matrix, Zone } = require("./device.js")
+// bufferpack does not have type declarations
+// @ts-expect-error
+import bufferpack from "bufferpack"
+
+import utils from "./utils.js"
+
+import Device from "./device"
+import type { RGBColor, Mode } from "./device"
 
 const HEADER_SIZE = 16
 const CLIENT_PROTOCOL_VERSION = 4
@@ -38,15 +43,17 @@ interface ResolveObject {
 	header?: Buffer
 }
 
-class Client extends EventEmitter {
+export default class Client extends EventEmitter {
 	name: string
 	port: number
 	host: string
 	isConnected: boolean
+	protocolVersion: number | undefined
 	settings: Settings
 
 	protected resolver: ResolveObject[]
-	private socket?: typeof Socket
+	protected currentPacketLength: number
+	private socket?: Socket
 	/**
 	 * @param {string} [name="nodejs"] name for the client
 	 * @param {number} [port=6742] port of the connection
@@ -64,6 +71,8 @@ class Client extends EventEmitter {
 
 		this.isConnected = false
 		this.resolver = []
+
+		this.currentPacketLength = 0
 
 		this.settings = settings
 	}
@@ -192,16 +201,16 @@ class Client extends EventEmitter {
 	 * @param {number} deviceId the id of the requested device
 	 * @returns {Promise<Device>}
 	 */
-	async getControllerData (deviceId: number): Promise<typeof Device> { 
+	async getControllerData (deviceId: number): Promise<Device> { 
 		this.sendMessage(utils.command.requestControllerData, bufferpack.pack("<I", [this.protocolVersion]), deviceId)
 		const buffer = await this.readMessage(utils.command.requestControllerData, deviceId)
-		return new Device(buffer, deviceId, this.protocolVersion)
+		return new Device(buffer, deviceId, this.protocolVersion!)
 	}
 	/**
 	 * get the properties of all devices
 	 * @returns {Promise<Device[]>}
 	 */
-	async getAllControllerData (): Promise<typeof Device[]> {
+	async getAllControllerData (): Promise<Device[]> {
 		let devices = []
 		let controllerCount = await this.getControllerCount()
 		for (let i = 0; i < controllerCount; i++) {
@@ -408,22 +417,20 @@ class Client extends EventEmitter {
 
 }
 
-module.exports = Client
-
 async function sendMode (this: Client, deviceId: number, mode: ModeInput, save: boolean) {
 	//TODO: shorten and beautify
 	let modeData: Mode
 
 	if (typeof deviceId != "number") throw new Error("arg deviceId not given")
-	let device = await this.getControllerData(deviceId)
+	let device: Device = await this.getControllerData(deviceId)
 
 	if (typeof mode != "object") throw new Error("arg mode not given")
 	if (mode.id) {
 		if (!device.modes.filter((elem: Mode) => elem.id == mode.id)[0]) throw new Error("Id given is not the id of a mode")
-		modeData = device.modes.filter((elem: Mode) => elem.id == mode.id)[0]
+		modeData = device.modes.filter((elem: Mode) => elem.id == mode.id)[0]!
 	} else if (mode.name) {
 		if (!device.modes.filter((elem: Mode) => elem.name.toLowerCase() == mode!.name!.toLowerCase())[0]) throw new Error("Name given is not the name of a mode")
-		modeData = device.modes.filter((elem: Mode) => elem.name == mode.name)[0]
+		modeData = device.modes.filter((elem: Mode) => elem.name == mode.name)[0]!
 	} else throw new Error("either mode.id or mode.name have to be given, but both are missing")
 
 	if (mode.speed) modeData.speed = mode.speed
@@ -483,7 +490,7 @@ async function sendMode (this: Client, deviceId: number, mode: ModeInput, save: 
 
 	let pack
 
-	if (this.protocolVersion >= 3) {
+	if (this.protocolVersion! >= 3) {
 		pack = bufferpack.pack("<12I", [
 			modeData.value, 
 			modeData.flags, 

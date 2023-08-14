@@ -1,10 +1,10 @@
-interface RGBColor {
+export interface RGBColor {
     red: number
     green: number
     blue: number
 }
 
-interface Mode {
+export interface Mode {
 	id: number
 	name: string
 	value: number
@@ -23,21 +23,21 @@ interface Mode {
 	flagList: string[]
 }
 
-interface Segment {
+export interface Segment {
 	name: string
 	type: number
 	start: number
 	length: number
 }
 
-interface Matrix {
+export interface Matrix {
 	size: number
 	height: number
 	width: number
 	keys: (number|undefined)[][]
 }
 
-interface Zone {
+export interface Zone {
 	name: string
 	id: number
 	type: number
@@ -49,7 +49,7 @@ interface Zone {
 	segments?: Segment[]
 }
 
-exports.Device = class Device {
+export default class Device {
 	deviceId: number
     type: number
     name: string
