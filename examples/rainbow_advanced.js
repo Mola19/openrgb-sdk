@@ -17,8 +17,7 @@ async function rainbow_advanced () {
 		let device = await client.getControllerData(deviceId)
 		// filter out devices, that don't have a direct mode and set remaining to direct
 		if (device.modes.filter(el => el.name == "Direct")[0]) {
-			let mode = {name: "Direct"}
-			await client.updateMode(deviceId, mode)
+			await client.updateMode(deviceId, "Direct")
 			deviceList[deviceId] = device
 		}
 	}

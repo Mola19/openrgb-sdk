@@ -314,7 +314,7 @@ export default class Client extends EventEmitter {
 	 * Either id or name must be given as an indication for which mode should be set.  
 	 * Purely informational fields like brightnessMax will be ignored but are allowed
 	 */
-	async updateMode (deviceId: number, mode: ModeInput) {
+	async updateMode (deviceId: number, mode: ModeInput | number | string) {
 		await sendMode.bind(this)(deviceId, mode, false)
 	}
 	/**
@@ -324,7 +324,7 @@ export default class Client extends EventEmitter {
 	 * Either id or name must be given as an indication for which mode should be set.  
 	 * Purely informational fields like brightnessMax will be ignored but are allowed
 	 */
-	 async saveMode (deviceId: number, mode: ModeInput) {
+	 async saveMode (deviceId: number, mode: ModeInput | number | string) {
 		await sendMode.bind(this)(deviceId, mode, true)
 	}
 	/**
@@ -417,27 +417,50 @@ export default class Client extends EventEmitter {
 
 }
 
-async function sendMode (this: Client, deviceId: number, mode: ModeInput, save: boolean) {
+async function sendMode (this: Client, deviceId: number, mode: ModeInput | number | string, save: boolean) {
 	//TODO: shorten and beautify
-	let modeData: Mode
-
 	if (typeof deviceId != "number") throw new Error("arg deviceId not given")
 	let device: Device = await this.getControllerData(deviceId)
+	
+	let modeId: number | undefined, modeName: string | undefined
 
-	if (typeof mode != "object") throw new Error("arg mode not given")
-	if (mode.id) {
-		if (!device.modes.filter((elem: Mode) => elem.id == mode.id)[0]) throw new Error("Id given is not the id of a mode")
-		modeData = device.modes.filter((elem: Mode) => elem.id == mode.id)[0]!
-	} else if (mode.name) {
-		if (!device.modes.filter((elem: Mode) => elem.name.toLowerCase() == mode!.name!.toLowerCase())[0]) throw new Error("Name given is not the name of a mode")
-		modeData = device.modes.filter((elem: Mode) => elem.name == mode.name)[0]!
-	} else throw new Error("either mode.id or mode.name have to be given, but both are missing")
+	switch (typeof mode) {
+		case "number":
+			modeId = mode
+			break
+		case "string":
+			modeName = mode
+			break
+		case "object":
+			if ("id" in mode) modeId = mode.id
+			else if ("name" in mode) modeName = mode.name
+			else throw new Error("Either mode.id or mode.name have to be given, but both are missing")
+			break
+		default:
+			throw new Error(`Mode must be of type number, string or object, but is of type ${typeof mode} `)
+	}
 
-	if (mode.speed) modeData.speed = mode.speed
-	if (mode.brightness) modeData.brightness = mode.brightness
-	if (mode.direction) modeData.direction = mode.direction
-	if (mode.colorMode) modeData.colorMode = mode.colorMode
-	if (mode.colors) modeData.colors = mode.colors
+	let modeData: Mode
+
+	if (modeId !== undefined) {
+		if (!device.modes[modeId]) throw new Error("Id given is not the id of a mode")
+		modeData = device.modes[modeId]!
+	} else if (modeName !== undefined) {
+		const nameSearch = device.modes.find((elem: Mode) => elem.name.toLowerCase() == modeName!.toLowerCase())
+		if (nameSearch === undefined) throw new Error("Name given is not the name of a mode")
+		modeData = nameSearch
+	} else {
+		// this can never be triggered, it just to shut ts up
+		throw new Error(`Mode must be of type number, string or object, but is of type ${typeof mode} `)
+	}
+
+	if (typeof mode == "object") {
+		if (mode.speed) modeData.speed = mode.speed
+		if (mode.brightness) modeData.brightness = mode.brightness
+		if (mode.direction) modeData.direction = mode.direction
+		if (mode.colorMode) modeData.colorMode = mode.colorMode
+		if (mode.colors) modeData.colors = mode.colors
+	}
 	// auto send per-led
 
 
