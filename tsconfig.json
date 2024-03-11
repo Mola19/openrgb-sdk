@@ -22,7 +22,7 @@
 
 		/* - modules - */
 		"module": "CommonJS",
-		"moduleResolution": "nodenext",
+		"moduleResolution": "node10",
 		"rootDir": "src",
 
 		/* - emit - */
