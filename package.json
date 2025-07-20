@@ -1,6 +1,6 @@
 {
 	"name": "openrgb-sdk",
-	"version": "0.5.2",
+	"version": "0.5.3",
 	"description": "An SDK client for the RGB Software OpenRGB",
 	"homepage": "https://docs.m4rch.xyz/openrgb",
 	"author": "mola19",

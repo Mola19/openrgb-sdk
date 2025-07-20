@@ -250,9 +250,9 @@ export default class Client extends EventEmitter {
 	 * @param {RGBColor[]} colors the colors the device should be set to
 	 */
 	updateLeds (deviceId: number, colors: RGBColor[]) {
-		const size = 2 + (4 * colors.length)
+		const size = 4 + 2 + (4 * colors.length)
 
-		const colorsBuffer = Buffer.alloc(size)
+		const colorsBuffer = Buffer.alloc(size-4)
 		colorsBuffer.writeUInt16LE(colors.length)
 
 		for (let i = 0; i < colors.length; i++) {
@@ -275,8 +275,8 @@ export default class Client extends EventEmitter {
 	 * @param {RGBColor[]} colors the colors the zone should be set to
 	 */
 	updateZoneLeds (deviceId: number, zoneId: number, colors: RGBColor[]) {
-		const size = 6 + (4 * colors.length)
-		const colorsBuffer = Buffer.alloc(size)
+		const size = 4 + 6 + (4 * colors.length)
+		const colorsBuffer = Buffer.alloc(size - 4)
 		colorsBuffer.writeUInt32LE(zoneId)
 		colorsBuffer.writeUInt16LE(colors.length, 4)
 		for (let i = 0; i < colors.length; i++) {
@@ -548,7 +548,7 @@ async function sendMode (this: Client, deviceId: number, mode: ModeInput | numbe
 		pack,
 		this.pack_color_list(modeData.colors ? modeData.colors : []), 
 	])
-	data = Buffer.concat([bufferpack.pack("<I", [data.length, bufferpack.calcLength("<I")]), data])
+	data = Buffer.concat([bufferpack.pack("<I", [data.length + bufferpack.calcLength("<I")]), data])
 
 	this.sendMessage(save ? utils.command.saveMode : utils.command.updateMode, data, deviceId)
 }
