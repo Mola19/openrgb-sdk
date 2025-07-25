@@ -47,6 +47,8 @@ export interface Zone {
 	resizable: boolean
 	matrix?: Matrix
 	segments?: Segment[]
+	flags?: number
+	flagList?: string[]
 }
 
 export default class Device {
@@ -66,6 +68,9 @@ export default class Device {
         value: number
     }[]
     colors: RGBColor[]
+	alternateLEDsNames?: string[]
+	flags?: number
+	flagList?: string[]
 	constructor (buffer: Buffer, deviceId: number, protocolVersion: number) {
 		this.deviceId = deviceId
 
@@ -133,6 +138,36 @@ export default class Device {
 		for (let colorIndex = 0; colorIndex < colorCount; colorIndex++) {
 			this.colors.push(readColor(buffer, offset))
 			offset += 4
+		}
+
+		this.alternateLEDsNames = undefined
+		this.flags = undefined
+		this.flagList = undefined
+		if (protocolVersion >= 5) {
+			this.alternateLEDsNames = []
+			const alternateLEDCount = buffer.readUInt16LE(offset)
+			offset += 2
+
+			for (let ledIndex = 0; ledIndex < alternateLEDCount; ledIndex++) {
+				const { text, length } = readString(buffer, offset)
+				offset += length
+				this.alternateLEDsNames.push(text)
+			}
+
+			this.flags = buffer.readUInt32LE(offset)
+			offset += 4
+	
+			this.flagList = []
+			const flagsArray = ["local", "remote", "virtual"]
+			flagsArray[8] = "resetBeforeUpdate"
+
+			let flagcheck_str: string = this.flags.toString(2)
+	
+			let flagcheck: string[] = Array(flagsArray.length - flagcheck_str.length).concat(flagcheck_str.split("")).reverse()
+	
+			flagcheck.forEach((el, i) => {
+				if (el == "1") this.flagList!.push(flagsArray[i] as string)
+			})
 		}
 	}
 }
@@ -307,6 +342,25 @@ function readZones (buffer: Buffer, zoneCount: number, offset: number, protocolV
 			}
 		}
 
+		let zoneFlags: number|undefined = undefined
+		let flagList: string[]|undefined = undefined
+
+		if (protocolVersion >= 5) {
+			zoneFlags = buffer.readUInt32LE(offset)
+			offset += 4
+	
+			flagList = []
+			const flags = ["resizeEffectsOnly"]
+	
+			let flagcheck_str: string = zoneFlags.toString(2)
+			let flagcheck: string[] = Array(flags.length - flagcheck_str.length).concat(flagcheck_str.split("")).reverse()
+	
+			flagcheck.forEach((el, i) => {
+				if (el == "1") flagList!.push(flags[i] as string)
+			})
+		}
+
+
 		let zone: Zone = {
 			name: zoneName,
 			id: zoneIndex,
@@ -316,7 +370,9 @@ function readZones (buffer: Buffer, zoneCount: number, offset: number, protocolV
 			ledsCount,
 			resizable,
 			matrix,
-			segments
+			segments,
+			flags: zoneFlags,
+			flagList
 		}
 
 		zones.push(zone)

@@ -11,7 +11,7 @@ import Device from "./device"
 import type { RGBColor, Mode } from "./device"
 
 const HEADER_SIZE = 16
-const CLIENT_PROTOCOL_VERSION = 4
+const CLIENT_PROTOCOL_VERSION = 5
 
 interface ModeInput {
 	id?: number
@@ -237,6 +237,12 @@ export default class Client extends EventEmitter {
 		return profiles
 	}
 	/**
+	 * request a rescan of devices in OpenRGB
+	 */
+	requestRescan (): void {
+		this.sendMessage(utils.command.requestRescanDevices)
+	}
+	/**
 	 * set the name of the client
 	 * @param {string} name the name displayed in openrgb
 	 */
@@ -359,6 +365,40 @@ export default class Client extends EventEmitter {
 	deleteProfile (name: string) {
 		let nameBytes = Buffer.concat([new TextEncoder().encode(name), Buffer.from([0x00])])
 		this.sendMessage(utils.command.deleteProfile, nameBytes)
+	}
+	/**
+	 * adds a segment to the specified Zone
+	 * @param deviceId id of the device
+	 * @param zoneId id of the zone
+	 * @param name name of the new segment
+	 * @param type zone type of the zone
+	 * @param start first led in the segment
+	 * @param length amount of leds in the segment
+	*/
+	addSegment (deviceId: number, zoneId: number, name: string, type: number, start: number, length: number) {
+		let size = 22 + name.length + 1
+		let buffer = Buffer.alloc(size)
+		
+		buffer.writeUInt32LE(size)
+		buffer.writeUInt32LE(zoneId, 4)
+		buffer.writeUInt16LE(name.length + 1, 8)
+		buffer.write(name, 10)
+		buffer.writeUInt8(0, 10 + name.length)
+		buffer.writeInt32LE(type, 11 + name.length)
+		buffer.writeUInt32LE(start, 15 + name.length)
+		buffer.writeUInt32LE(length, 19 + name.length)
+
+		this.sendMessage(utils.command.addSegment, buffer, deviceId)
+	}
+	/**
+	 * removes a segment
+	 * @param deviceId id of the device
+	 * @param zoneId id of the zone
+	 */
+	clearSegments (deviceId: number, zoneId: number) {
+		let buffer = Buffer.alloc(4)
+		buffer.writeUint32LE(zoneId)
+		this.sendMessage(utils.command.clearSegments, buffer, deviceId)
 	}
 	/**
 	 * @private

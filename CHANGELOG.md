@@ -5,6 +5,20 @@ all notable changes to this project will be documented in this file.
 the format is loosely based on [keep a changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2025-07-25
+
+### added
+
+- implementing OpenRGB SDK protocol version 5
+  - functions
+    - `requestRescan`
+    - `addSegment`
+    - `clearSegments`
+  - data
+    - controller flags
+    - zone flags
+    - device alternate led names
+
 ## [0.5.3] - 2025-07-20
 
 ### fixed
